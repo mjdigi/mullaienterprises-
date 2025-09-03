@@ -64,45 +64,61 @@
         .table-header { background-color: var(--color-table-header); }
         .table-row:hover { background-color: var(--color-table-row-hover); }
 
-        /* New Multi-colored Loader */
-        .loader-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
-            z-index: 1000;
-        }
-        .dark-mode .loader-container {
-            background-color: rgba(0, 0, 0, 0.8);
-        }
-        .multi-bar-loader {
-            width: 100px;
-            height: 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .multi-bar-loader div {
-            width: 10px;
-            height: 100%;
-            border-radius: 5px;
-            animation: stretch 1s ease-in-out infinite;
-        }
-        .multi-bar-loader div:nth-child(1) { background-color: #ff5722; animation-delay: -0.9s; }
-        .multi-bar-loader div:nth-child(2) { background-color: #ff9800; animation-delay: -0.8s; }
-        .multi-bar-loader div:nth-child(3) { background-color: #ffc107; animation-delay: -0.7s; }
-        .multi-bar-loader div:nth-child(4) { background-color: #8bc34a; animation-delay: -0.6s; }
-        .multi-bar-loader div:nth-child(5) { background-color: #00bcd4; animation-delay: -0.5s; }
-        .multi-bar-loader div:nth-child(6) { background-color: #2196f3; animation-delay: -0.4s; }
-        .multi-bar-loader div:nth-child(7) { background-color: #9c27b0; animation-delay: -0.3s; }
-        @keyframes stretch {
-            0%, 40%, 100% { transform: scaleY(0.4); }
-            20% { transform: scaleY(1); }
-        }
+      
+/* Loader container - centered */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+}
+
+/* Dark mode */
+.dark-mode .loader-container {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Hidden by default */
+.loader-container.hidden {
+    display: none;
+}
+
+
+
+/* Loader text animation */
+.loader-text {
+    font-size: 32px;
+    font-weight: 700;
+    display: flex;
+    gap: 5px;
+    margin-top: 15px;
+    font-family: 'Inter', sans-serif;
+}
+.loader-text span {
+    display: inline-block;
+    animation: bounce 1.2s infinite;
+}
+.loader-text span:nth-child(1) { animation-delay: 0s; color:#ff5722; }
+.loader-text span:nth-child(2) { animation-delay: 0.1s; color:#ff9800; }
+.loader-text span:nth-child(3) { animation-delay: 0.2s; color:#ffc107; }
+.loader-text span:nth-child(4) { animation-delay: 0.3s; color:#8bc34a; }
+.loader-text span:nth-child(5) { animation-delay: 0.4s; color:#00bcd4; }
+.loader-text span:nth-child(6) { animation-delay: 0.5s; color:#2196f3; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-12px); }
+}
+
+
 
         /* Custom Alert */
         .custom-alert {
@@ -167,15 +183,20 @@
 <body class="min-h-screen flex flex-col">
 
     <div id="loader" class="loader-container hidden">
-        <div class="multi-bar-loader">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-        </div>
+        
+<!-- Loader HTML -->
+    <div class="multi-bar-loader">
+        <div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+    </div>
+    <div class="loader-text">
+        <span>M</span>
+        <span>U</span>
+        <span>L</span>
+        <span>L</span>
+        <span>A</span>
+        <span>I</span>
+    </div>
     </div>
 
     <div id="custom-alert" class="custom-alert hidden"></div>
@@ -197,46 +218,98 @@
     </header>
 
     <main class="flex-1 p-4 sm:p-8 container mx-auto">
-        <section id="dashboard" class="content-section card p-6 sm:p-8 rounded-2xl shadow-xl active">
-            <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div class="total-stock-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4">
-                    <div>
-                        <p class="text-sm font-medium opacity-80">Total Stock Value</p>
-                        <p id="total-stock-value" class="text-4xl font-bold"></p>
-                    </div>
+    <section id="dashboard" class="content-section card p-6 sm:p-8 rounded-2xl shadow-xl active">
+        <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Existing Cards -->
+            <div class="total-stock-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4">
+                <div>
+                    <p class="text-sm font-medium opacity-80">Total Stock Value</p>
+                    <p id="total-stock-value" class="text-4xl font-bold"></p>
                 </div>
-                <div class="total-sales-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4">
-                    <div>
-                        <p class="text-sm font-medium opacity-80">Total Sales</p>
-                        <p id="total-sales-amount" class="text-4xl font-bold"></p>
-                    </div>
+            </div>
+            <div class="total-sales-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4">
+                <div>
+                    <p class="text-sm font-medium opacity-80">Total Sales</p>
+                    <p id="total-sales-amount" class="text-4xl font-bold"></p>
                 </div>
-                <div class="low-stock-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4">
-                    <div>
-                        <p class="text-sm font-medium opacity-80">Low Stock Items</p>
-                        <p id="low-stock-count" class="text-4xl font-bold"></p>
-                    </div>
+            </div>
+            <div class="low-stock-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4">
+                <div>
+                    <p class="text-sm font-medium opacity-80">Low Stock Items</p>
+                    <p id="low-stock-count" class="text-4xl font-bold"></p>
                 </div>
             </div>
 
-            <div class="bg-gray-50 dark-mode:bg-gray-800 p-6 rounded-2xl shadow-inner">
-                <h3 class="text-xl font-bold mb-4">Low Stock Items (<span id="low-stock-count-list"></span>)</h3>
-                <div id="low-stock-list" class="overflow-y-auto max-h-80">
-                    <table class="min-w-full">
-                        <thead class="table-header">
-                            <tr class="text-left">
-                                <th class="p-3">Code</th>
-                                <th class="p-3">Name</th>
-                                <th class="p-3">Quantity</th>
-                            </tr>
-                        </thead>
-                        <tbody id="low-stock-table-body" class="divide-y divide-gray-200 dark-mode:divide-gray-700">
-                        </tbody>
-                    </table>
+            <!-- 🔹 New Cards -->
+            <div class="cash-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4 cursor-pointer" onclick="openDetails('cash')">
+                <div>
+                    <p class="text-sm font-medium opacity-80">Total Cash</p>
+                    <p id="total-cash" class="text-4xl font-bold"></p>
                 </div>
             </div>
-        </section>
+
+            <div class="online-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4 cursor-pointer" onclick="openDetails('online')">
+                <div>
+                    <p class="text-sm font-medium opacity-80">Total Online</p>
+                    <p id="total-online" class="text-4xl font-bold"></p>
+                </div>
+            </div>
+
+            <div class="credit-card card rounded-3xl p-6 shadow-xl flex items-center space-x-4 cursor-pointer" onclick="openDetails('credit')">
+                <div>
+                    <p class="text-sm font-medium opacity-80">Total Credit</p>
+                    <p id="total-credit" class="text-4xl font-bold"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Section -->
+       <div class="bg-gray-50 dark-mode:bg-gray-800 p-6 rounded-2xl shadow-inner">
+            <h3 class="text-xl font-bold mb-4">Low Stock Items (<span id="low-stock-count-list"></span>)</h3>
+            <div id="low-stock-list" class="overflow-y-auto">
+                <table class="min-w-full">
+                    <thead class="table-header">
+                        <tr class="text-left">
+                            <th class="p-3">Code</th>
+                            <th class="p-3">Name</th>
+                            <th class="p-3">Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="low-stock-table-body" class="divide-y divide-gray-200 dark-mode:divide-gray-700"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 🔹 Details Section (hidden by default) -->
+    <section id="details-section" class="content-section card p-6 sm:p-8 rounded-2xl shadow-xl hidden">
+        <h2 id="details-title" class="text-2xl font-bold mb-6"></h2>
+        
+        <!-- Date Filter -->
+        <div class="flex items-center space-x-4 mb-6">
+            <input type="date" id="date-filter" class="border rounded-lg p-2" />
+            <button onclick="filterByDate()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Search</button>
+        </div>
+        
+        <!-- Results Table -->
+        <div class="overflow-y-auto max-h-96">
+            <table class="min-w-full">
+                <thead>
+                    <tr>
+                        <th class="p-3">Date</th>
+                        <th class="p-3">Amount</th>
+                        <th class="p-3">Description</th>
+                    </tr>
+                </thead>
+                <tbody id="details-table-body" class="divide-y divide-gray-200 dark-mode:divide-gray-700"></tbody>
+            </table>
+        </div>
+
+        <button onclick="goBack()" class="mt-6 bg-gray-600 text-white px-4 py-2 rounded-lg">Back to Dashboard</button>
+    </section>
+
 
         <section id="stock" class="content-section card p-6 sm:p-8 rounded-2xl shadow-xl">
             <h2 class="text-2xl font-bold mb-6">Stock Management</h2>
@@ -578,10 +651,17 @@
         // Utility
         const formatCurrency = (amount) => `₹${parseFloat(amount || 0).toFixed(2)}`;
         const generateInvoiceNo = () => `INV-${Date.now()}`;
+        
+        // NEW: Set invoice date to today
+        function setTodayDate() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('invoice-date').value = `${yyyy}-${mm}-${dd}`;
+        }
 
-        // --- Renderers and data operations now use async/await with Firestore ---
-
-        // UPDATED: Dashboard render to account for returns
+        // UPDATED: Dashboard render to account for returns and payment modes
         async function renderDashboard() {
             const stockData = await getAllDocs(STOCK_COLLECTION);
             const salesData = await getAllDocs(SALES_COLLECTION);
@@ -589,11 +669,24 @@
             let totalStockValue = 0;
             let totalSalesAmount = 0;
             const lowStockItems = [];
-            stockData.forEach(item => { totalStockValue += (item.quantity || 0) * (item.price || 0); if ((item.quantity || 0) <= LOW_STOCK_THRESHOLD) lowStockItems.push(item); });
-            
-            // Calculate total sales considering returns
+
+            stockData.forEach(item => {
+                totalStockValue += (item.quantity || 0) * (item.price || 0);
+                if ((item.quantity || 0) <= LOW_STOCK_THRESHOLD) {
+                    lowStockItems.push(item);
+                }
+            });
+
+            // New variables for payment modes
+            let totalCash = 0;
+            let totalOnline = 0;
+            let totalCredit = 0;
+
+            // Calculate total sales and payment mode totals, considering returns
             salesData.forEach(s => {
                 let saleTotal = (s.totals && s.totals.grandTotal) ? s.totals.grandTotal : 0;
+                
+                // Recalculate based on returned items
                 if (s.returnedItems && s.returnedItems.length > 0) {
                     let returnedValue = 0;
                     s.returnedItems.forEach(returnedItem => {
@@ -604,14 +697,31 @@
                     });
                     saleTotal -= returnedValue;
                 }
+
                 totalSalesAmount += saleTotal;
+
+                // Add to payment mode totals based on the sale's payment details
+                if (s.paymentMode === 'Cash') {
+                    totalCash += saleTotal;
+                } else if (s.paymentMode === 'Online') {
+                    totalOnline += saleTotal;
+                }
+                
+                // Check if the sale is a credit sale (not fully paid)
+                if (s.paymentStatus === 'Not Paid' || s.paymentStatus === 'Partially Paid') {
+                    totalCredit += saleTotal;
+                }
             });
 
+            // Update the dashboard UI
             document.getElementById('total-stock-value').textContent = formatCurrency(totalStockValue);
             document.getElementById('total-sales-amount').textContent = formatCurrency(totalSalesAmount);
             document.getElementById('low-stock-count').textContent = lowStockItems.length;
-            document.getElementById('low-stock-count-list').textContent = lowStockItems.length;
+            document.getElementById('total-cash').textContent = formatCurrency(totalCash);
+            document.getElementById('total-online').textContent = formatCurrency(totalOnline);
+            document.getElementById('total-credit').textContent = formatCurrency(totalCredit);
 
+            document.getElementById('low-stock-count-list').textContent = lowStockItems.length;
             const lowStockTableBody = document.getElementById('low-stock-table-body');
             lowStockTableBody.innerHTML = '';
             if (lowStockItems.length === 0) {
@@ -625,7 +735,6 @@
                 });
             }
         }
-
         // Stock management
         let selectedStockIds = new Set();
         const stockListEl = document.getElementById('stock-list');
@@ -749,6 +858,8 @@
             hideLoader();
         });
         document.getElementById('btn-export-pdf').addEventListener('click', () => showAlert('PDF export requires a library like jsPDF (not included).', 'info'));
+
+
         // --- Invoice logic ---
         const stockCodeInput = document.getElementById('stock-code-input');
         const addItemBtn = document.getElementById('add-item-btn');
@@ -854,31 +965,73 @@
         
         // UPDATED: Save and Print function with QR code
         savePrintBtn.addEventListener('click', async () => {
-            if(invoiceItems.length===0){ showAlert('Add at least one item', 'info'); return; }
-            const invoiceNo = document.getElementById('invoice-no').value || generateInvoiceNo();
-            const invoiceDate = document.getElementById('invoice-date').value || new Date().toISOString().slice(0,10);
-            const customerName = document.getElementById('customer-name').value;
-            const customerPhone = document.getElementById('customer-phone').value;
-            const customerEmail = document.getElementById('customer-email').value;
-            const customerAddress = document.getElementById('customer-address').value;
-            const paymentStatus = paymentStatusSelect.value;
-            const paymentMode = paymentModeSelect.value; // Get the selected payment mode
-            let paidAmount = parseFloat(paidAmountInput.value) || 0;
-            const grandTotal = parseFloat(document.getElementById('grand-total').textContent.replace('₹', ''));
-            
-            if(paymentStatus === 'Full Paid') {
-                paidAmount = grandTotal;
-            } else if (paymentStatus === 'Not Paid') {
-                paidAmount = 0;
-            }
+    if (invoiceItems.length === 0) {
+        showAlert('Add at least one item', 'info');
+        return;
+    }
 
-            const balance = paidAmount - grandTotal;
-            
-            // Totals
-            let totals = { 
-                subtotal:0, discount:0, gst:0, grandTotal:0 };
-            invoiceItems.forEach(it=>{ totals.subtotal += it.price*it.quantity; totals.discount += (it.price*it.quantity)*(it.discount/100); const afterDiscount = it.price*it.quantity - (it.price*it.quantity)*(it.discount/100); totals.gst += afterDiscount*(it.gst/100); totals.grandTotal += afterDiscount*(1+it.gst/100); });
-            const invoiceData = { invoiceNo, invoiceDate, customer:{name:customerName,phone:customerPhone,email:customerEmail,address:customerAddress}, items: invoiceItems, paymentStatus, paymentMode, paidAmount, balance, totals, timestamp: Date.now(), returned:false, returnedItems: [] }; // Added paymentMode to data
+    const invoiceNo = document.getElementById('invoice-no').value || generateInvoiceNo();
+    const invoiceDate = document.getElementById('invoice-date').value || new Date().toISOString().slice(0,10);
+    const customerName = document.getElementById('customer-name').value;
+    const customerPhone = document.getElementById('customer-phone').value;
+    const customerEmail = document.getElementById('customer-email').value;
+    const customerAddress = document.getElementById('customer-address').value;
+    const paymentStatus = paymentStatusSelect.value;
+    const paymentMode = paymentModeSelect.value; // Cash / Online / Credit
+    let paidAmount = parseFloat(paidAmountInput.value) || 0;
+    const grandTotal = parseFloat(document.getElementById('grand-total').textContent.replace('₹', ''));
+
+    if (paymentStatus === 'Full Paid') {
+        paidAmount = grandTotal;
+    } else if (paymentStatus === 'Not Paid') {
+        paidAmount = 0;
+    }
+
+    // ✅ Correct balance (Grand Total – Paid)
+    const balance = grandTotal - paidAmount;
+
+    // Totals calculation
+    let totals = { subtotal: 0, discount: 0, gst: 0, grandTotal: 0 };
+    invoiceItems.forEach(it => {
+        const itemSubtotal = it.price * it.quantity;
+        const itemDiscount = itemSubtotal * (it.discount / 100);
+        const afterDiscount = itemSubtotal - itemDiscount;
+        const itemGST = afterDiscount * (it.gst / 100);
+        totals.subtotal += itemSubtotal;
+        totals.discount += itemDiscount;
+        totals.gst += itemGST;
+        totals.grandTotal += afterDiscount + itemGST;
+    });
+
+    // ✅ Split by payment mode (for dashboard)
+    let cashAmount = 0, onlineAmount = 0, creditAmount = 0;
+    if (paymentMode === 'Cash') cashAmount = paidAmount;
+    if (paymentMode === 'Online') onlineAmount = paidAmount;
+    if (paymentMode === 'Credit') creditAmount = paidAmount;
+
+    const invoiceData = {
+        invoiceNo,
+        invoiceDate,
+        customer: {
+            name: customerName,
+            phone: customerPhone,
+            email: customerEmail,
+            address: customerAddress
+        },
+        items: invoiceItems,
+        paymentStatus,
+        paymentMode,
+        paidAmount,
+        balance,
+        totals,
+        cashAmount,   // 🔹 Store explicitly for dashboard
+        onlineAmount, // 🔹
+        creditAmount, // 🔹
+        timestamp: Date.now(),
+        returned: false,
+        returnedItems: []
+    };
+
             
             showLoader();
             await setDocById(SALES_COLLECTION, invoiceNo, invoiceData);
