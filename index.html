@@ -8,41 +8,42 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        /* New Color Design */
+        /* New Color variables for both themes */
         :root {
-            --color-bg: #f0f4f8;
+            --color-bg: #f8f9fa;
             --color-card: #ffffff;
-            --color-primary: #5a67d8;
-            --color-primary-dark: #434190;
-            --color-accent: #2e8b57;
-            --color-accent-dark: #226f43;
-            --color-text-main: #1a202c;
-            --color-text-secondary: #718096;
-            --color-border: #e2e8f0;
-            --color-input: #f7fafc;
-            --color-table-header: #edf2f7;
-            --color-table-row-hover: #f7fafc;
-            --color-danger: #e53e3e;
-            --color-success: #38a169;
-            --color-warning: #ecc94b;
+            --color-primary: #007bff;
+            --color-primary-dark: #0056b3;
+            --color-accent: #28a745;
+            --color-accent-dark: #1e7e34;
+            --color-text-main: #212529;
+            --color-text-secondary: #6c757d;
+            --color-border: #dee2e6;
+            --color-input: #e9ecef;
+            --color-table-header: #e9ecef;
+            --color-table-row-hover: #f1f3f5;
+            --color-danger: #dc3545;
+            --color-success: #28a745;
+            --color-warning: #ffc107;
         }
         .dark-mode {
-            --color-bg: #1a202c;
-            --color-card: #2d3748;
-            --color-primary: #a5b4fc;
-            --color-primary-dark: #6366f1;
-            --color-accent: #38b2ac;
-            --color-accent-dark: #319795;
-            --color-text-main: #e2e8f0;
-            --color-text-secondary: #a0aec0;
-            --color-border: #4a5568;
-            --color-input: #4a5568;
-            --color-table-header: #4a5568;
-            --color-table-row-hover: #2d3748;
-            --color-danger: #fc8181;
-            --color-success: #68d391;
-            --color-warning: #f6e05e;
+            --color-bg: #212529;
+            --color-card: #343a40;
+            --color-primary: #17a2b8;
+            --color-primary-dark: #117a8b;
+            --color-accent: #20c997;
+            --color-accent-dark: #128169;
+            --color-text-main: #f8f9fa;
+            --color-text-secondary: #ced4da;
+            --color-border: #495057;
+            --color-input: #495057;
+            --color-table-header: #495057;
+            --color-table-row-hover: #454d55;
+            --color-danger: #dc3545;
+            --color-success: #28a745;
+            --color-warning: #ffc107;
         }
 
         body {
@@ -59,82 +60,126 @@
         .nav-btn.active, .nav-btn:hover { background-color: var(--color-border); color: var(--color-primary); }
         .dark-mode .nav-btn.active, .dark-mode .nav-btn:hover { background-color: var(--color-border); color: var(--color-accent); }
         .btn-primary { background-color: var(--color-primary); color: white; }
-        .input-style { background-color: var(--color-input); border-color: var(--color-border); }
+        .input-style { background-color: var(--color-input); border-color: var(--color-border); color: var(--color-text-main); }
         .table-header { background-color: var(--color-table-header); }
         .table-row:hover { background-color: var(--color-table-row-hover); }
 
-        /* Loader CSS: Paint Shop Animation */
-        .loader-overlay {
+        /* New Multi-colored Loader */
+        .loader-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
+            z-index: 1000;
         }
-        .hidden { display: none; }
-        .loader-container {
+        .dark-mode .loader-container {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .multi-bar-loader {
             width: 100px;
-            height: 100px;
-            position: relative;
+            height: 20px;
+            display: flex;
+            justify-content: space-between;
         }
-        .paint-drip {
-            position: absolute;
-            bottom: 0;
-            width: 15px;
-            height: 0;
-            background-color: var(--color-primary);
-            animation: drip 1.5s cubic-bezier(0.65, 0.05, 0.36, 1) infinite;
+        .multi-bar-loader div {
+            width: 10px;
+            height: 100%;
+            border-radius: 5px;
+            animation: stretch 1s ease-in-out infinite;
         }
-        .paint-drip:nth-child(2) { left: 20px; animation-delay: 0.1s; }
-        .paint-drip:nth-child(3) { left: 40px; animation-delay: 0.2s; }
-        .paint-drip:nth-child(4) { left: 60px; animation-delay: 0.3s; }
-        .paint-drip:nth-child(5) { left: 80px; animation-delay: 0.4s; }
-        @keyframes drip {
-            0% { transform: translateY(0); height: 0; opacity: 1; }
-            50% { transform: translateY(50px); height: 50px; opacity: 1; }
-            100% { transform: translateY(100px); height: 50px; opacity: 0; }
+        .multi-bar-loader div:nth-child(1) { background-color: #ff5722; animation-delay: -0.9s; }
+        .multi-bar-loader div:nth-child(2) { background-color: #ff9800; animation-delay: -0.8s; }
+        .multi-bar-loader div:nth-child(3) { background-color: #ffc107; animation-delay: -0.7s; }
+        .multi-bar-loader div:nth-child(4) { background-color: #8bc34a; animation-delay: -0.6s; }
+        .multi-bar-loader div:nth-child(5) { background-color: #00bcd4; animation-delay: -0.5s; }
+        .multi-bar-loader div:nth-child(6) { background-color: #2196f3; animation-delay: -0.4s; }
+        .multi-bar-loader div:nth-child(7) { background-color: #9c27b0; animation-delay: -0.3s; }
+        @keyframes stretch {
+            0%, 40%, 100% { transform: scaleY(0.4); }
+            20% { transform: scaleY(1); }
         }
 
-        /* Message Bar CSS */
-        #message-bar {
+        /* Custom Alert */
+        .custom-alert {
             position: fixed;
-            top: -100px; /* Start off-screen */
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            width: 90%;
-            max-width: 600px;
-            padding: 1rem 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            z-index: 9998;
-            transition: top 0.5s ease-in-out;
-            text-align: center;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 9999px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out, top 0.5s ease-in-out;
+            pointer-events: none;
+            color: white;
         }
-        #message-bar.show { top: 1rem; }
-        #message-bar.success { background-color: var(--color-success); color: white; }
-        #message-bar.error { background-color: var(--color-danger); color: white; }
-        #message-bar.warning { background-color: var(--color-warning); color: white; }
+        .custom-alert.visible {
+            opacity: 1;
+            top: 20px;
+        }
+        .custom-alert.success { background-color: var(--color-success); }
+        .custom-alert.error { background-color: var(--color-danger); }
+        .custom-alert.info { background-color: var(--color-primary); }
+        
+        /* Print Styles */
+        @media print {
+            @page {
+                size: 430mm 932mm; /* Custom paper size */
+            }
+            body > *:not(#invoice-modal) {
+                display: none;
+            }
+            #invoice-modal {
+                position: static !important;
+                transform: none !important;
+                background-color: white;
+            }
+            /* Hide the 'Print' and 'Done' buttons only when printing */
+            .no-print {
+                display: none;
+            }
+            .card.p-8.rounded-lg.shadow-2xl.max-w-2xl.w-full {
+                box-shadow: none;
+            }
+            #invoice-bill-content {
+                border: none !important;
+            }
+            .qr-code-container {
+                display: block;
+            }
+        }
+
+        .qr-code-container {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <div id="message-bar"></div>
-
-    <div id="loader" class="loader-overlay hidden">
-        <div class="loader-container">
-            <div class="paint-drip"></div>
-            <div class="paint-drip"></div>
-            <div class="paint-drip"></div>
-            <div class="paint-drip"></div>
-            <div class="paint-drip"></div>
+    <div id="loader" class="loader-container hidden">
+        <div class="multi-bar-loader">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
         </div>
     </div>
-    
+
+    <div id="custom-alert" class="custom-alert hidden"></div>
+
     <header class="card p-4 shadow-md">
         <div class="container mx-auto flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
             <h1 class="text-3xl font-bold">MULLAI STORE</h1>
@@ -243,7 +288,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label class="block">
                         <span class="text-gray-500">Invoice No:</span>
-                        <input type="text" id="invoice-no" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-200 dark-mode:bg-gray-700 input-style" readonly>
+                        <input type="text" id="invoice-no" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-200 dark-mode:bg-gray-700 dark-mode:text-gray-200 input-style" readonly>
                     </label>
                     <label class="block">
                         <span class="text-gray-500">Invoice Date:</span>
@@ -304,20 +349,29 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <label class="block">
-                        <span class="text-gray-500">Payment Mode:</span>
-                        <select id="payment-mode" class="mt-1 block w-full rounded-lg shadow-sm p-3 input-style">
-                            <option value="Cash">Cash</option>
-                            <option value="Card">Card</option>
-                            <option value="UPI">UPI</option>
+                        <span class="text-gray-500">Payment Status:</span>
+                        <select id="payment-status" class="mt-1 block w-full rounded-lg shadow-sm p-3 input-style">
+                            <option value="Full Paid">Full Paid</option>
+                            <option value="Partially Paid">Partially Paid</option>
+                            <option value="Not Paid">Not Paid</option>
                         </select>
                     </label>
                     <label class="block">
-                        <span class="text-gray-500">Paid Amount:</span>
-                        <input type="number" id="paid-amount" class="mt-1 block w-full rounded-lg shadow-sm p-3 input-style">
+                        <span class="text-gray-500">Payment Mode:</span>
+                        <select id="payment-mode" class="mt-1 block w-full rounded-lg shadow-sm p-3 input-style">
+                            <option value="Cash">Cash</option>
+                            <option value="Online">Online</option>
+                        </select>
                     </label>
+                    <div id="paid-amount-container" class="hidden">
+                        <label class="block">
+                            <span class="text-gray-500">Paid Amount:</span>
+                            <input type="number" id="paid-amount" class="mt-1 block w-full rounded-lg shadow-sm p-3 input-style">
+                        </label>
+                    </div>
                     <label class="block">
                         <span class="text-gray-500">Balance:</span>
-                        <input type="number" id="balance" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-200 dark-mode:bg-gray-700 input-style" readonly>
+                        <input type="number" id="balance" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-200 dark-mode:bg-gray-700 dark-mode:text-gray-200 input-style" readonly>
                     </label>
                 </div>
 
@@ -331,6 +385,9 @@
 
         <section id="sales" class="content-section card p-6 sm:p-8 rounded-2xl shadow-xl">
             <h2 class="text-2xl font-bold mb-6">Sales Details</h2>
+            <div class="mb-4">
+                <input type="text" id="sales-search-input" placeholder="Search by Invoice No. or Customer Name" class="w-full p-3 border rounded-xl input-style">
+            </div>
             <div class="overflow-x-auto rounded-lg card">
                 <table class="min-w-full">
                     <thead class="table-header">
@@ -352,11 +409,11 @@
 
     <div id="invoice-modal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-70 p-4">
         <div class="card p-8 rounded-lg shadow-2xl max-w-2xl w-full">
-            <div id="invoice-bill-content" class="p-4 border-2 border-dashed border-gray-300 dark-mode:border-gray-600 rounded-lg">
+            <div class="no-print mt-6 mb-4 flex justify-end space-x-4">
+                <button onclick="window.print()" class="no-print px-6 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600">Print</button>
+                <button id="close-invoice-modal" class="no-print px-6 py-3 bg-gray-400 text-white rounded-xl hover:bg-gray-500">Done</button>
             </div>
-            <div class="no-print mt-6 flex justify-end space-x-4">
-                <button onclick="window.print()" class="px-6 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600">Print</button>
-                <button id="close-invoice-modal" class="px-6 py-3 bg-gray-400 text-white rounded-xl hover:bg-gray-500">Done</button>
+            <div id="invoice-bill-content" class="p-4 border-2 border-dashed border-gray-300 dark-mode:border-gray-600 rounded-lg">
             </div>
         </div>
     </div>
@@ -367,7 +424,7 @@
             <div class="space-y-4">
                 <label class="block">
                     <span class="text-gray-500">Stock Code:</span>
-                    <input type="text" id="edit-stock-code" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-200 dark-mode:bg-gray-700 input-style" readonly>
+                    <input type="text" id="edit-stock-code" class="mt-1 block w-full rounded-lg shadow-sm p-3 bg-gray-200 dark-mode:bg-gray-700 dark-mode:text-gray-200 input-style" readonly>
                 </label>
                 <label class="block">
                     <span class="text-gray-500">Product Name:</span>
@@ -420,7 +477,6 @@
         import {
             getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
         // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyCOfYScRtu_r2p1MlDVGT_BSnR4VWe1kIU",
@@ -439,78 +495,49 @@
         const SALES_COLLECTION = 'sales';
         const LOW_STOCK_THRESHOLD = 10;
 
-        // Loader element
-        const loader = document.getElementById('loader');
-        const messageBar = document.getElementById('message-bar');
-
-        // New Message Bar function
-        function showMessage(message, type = 'success', duration = 3000) {
-            messageBar.textContent = message;
-            messageBar.className = ''; // Clear existing classes
-            messageBar.classList.add('show', type);
-            setTimeout(() => {
-                messageBar.classList.remove('show');
-            }, duration);
-        }
-
         // --- Helper: Firestore wrappers ---
         async function getAllDocs(collectionName) {
-            loader.classList.remove('hidden');
-            try {
-                const snaps = await getDocs(collection(db, collectionName));
-                const data = [];
-                snaps.forEach(s => data.push({ id: s.id, ...s.data() }));
-                return data;
-            } finally {
-                loader.classList.add('hidden');
-            }
+            const snaps = await getDocs(collection(db, collectionName));
+            const data = [];
+            snaps.forEach(s => data.push({ id: s.id, ...s.data() }));
+            return data;
         }
 
         async function getDocById(collectionName, id) {
-            loader.classList.remove('hidden');
-            try {
-                const dref = doc(db, collectionName, id);
-                const snap = await getDoc(dref);
-                return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-            } finally {
-                loader.classList.add('hidden');
-            }
+            const dref = doc(db, collectionName, id);
+            const snap = await getDoc(dref);
+            return snap.exists() ? { id: snap.id, ...snap.data() } : null;
         }
 
         async function setDocById(collectionName, id, obj) {
-            loader.classList.remove('hidden');
-            try {
-                await setDoc(doc(db, collectionName, id), obj);
-            } finally {
-                loader.classList.add('hidden');
-            }
+            await setDoc(doc(db, collectionName, id), obj);
         }
 
         async function addDocAuto(collectionName, obj) {
-            loader.classList.remove('hidden');
-            try {
-                return await addDoc(collection(db, collectionName), obj);
-            } finally {
-                loader.classList.add('hidden');
-            }
+            return await addDoc(collection(db, collectionName), obj);
         }
 
         async function updateDocById(collectionName, id, obj) {
-            loader.classList.remove('hidden');
-            try {
-                await updateDoc(doc(db, collectionName, id), obj);
-            } finally {
-                loader.classList.add('hidden');
-            }
+            await updateDoc(doc(db, collectionName, id), obj);
         }
 
         async function deleteDocById(collectionName, id) {
-            loader.classList.remove('hidden');
-            try {
-                await deleteDoc(doc(db, collectionName, id));
-            } finally {
-                loader.classList.add('hidden');
-            }
+            await deleteDoc(doc(db, collectionName, id));
+        }
+        
+        // Loader Functions
+        const loader = document.getElementById('loader');
+        const showLoader = () => loader.classList.remove('hidden');
+        const hideLoader = () => loader.classList.add('hidden');
+
+        // Custom Alert
+        function showAlert(message, type = 'info') {
+            const alertEl = document.getElementById('custom-alert');
+            alertEl.textContent = message;
+            alertEl.className = `custom-alert visible ${type}`;
+            setTimeout(() => {
+                alertEl.classList.remove('visible');
+            }, 3000); // Alert disappears after 3 seconds
         }
 
         // --- UI & State ---
@@ -528,9 +555,11 @@
             navBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
+            showLoader();
             if (target === 'dashboard') await renderDashboard();
             if (target === 'stock') await renderStock();
-            if (target === 'sales') await renderSales();
+            if (target === 'sales') await fetchAllSales();
+            hideLoader();
         }));
         document.querySelector('[data-target="dashboard"]').classList.add('active');
 
@@ -552,37 +581,48 @@
 
         // --- Renderers and data operations now use async/await with Firestore ---
 
+        // UPDATED: Dashboard render to account for returns
         async function renderDashboard() {
-            loader.classList.remove('hidden');
-            try {
-                const stockData = await getAllDocs(STOCK_COLLECTION);
-                const salesData = await getAllDocs(SALES_COLLECTION);
+            const stockData = await getAllDocs(STOCK_COLLECTION);
+            const salesData = await getAllDocs(SALES_COLLECTION);
 
-                let totalStockValue = 0;
-                let totalSalesAmount = 0;
-                const lowStockItems = [];
-                stockData.forEach(item => { totalStockValue += (item.quantity || 0) * (item.price || 0); if ((item.quantity || 0) <= LOW_STOCK_THRESHOLD) lowStockItems.push(item); });
-                salesData.forEach(s => totalSalesAmount += (s.totals && s.totals.grandTotal) ? s.totals.grandTotal : 0);
-
-                document.getElementById('total-stock-value').textContent = formatCurrency(totalStockValue);
-                document.getElementById('total-sales-amount').textContent = formatCurrency(totalSalesAmount);
-                document.getElementById('low-stock-count').textContent = lowStockItems.length;
-                document.getElementById('low-stock-count-list').textContent = lowStockItems.length;
-
-                const lowStockTableBody = document.getElementById('low-stock-table-body');
-                lowStockTableBody.innerHTML = '';
-                if (lowStockItems.length === 0) {
-                    lowStockTableBody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-400">No items are currently low in stock.</td></tr>';
-                } else {
-                    lowStockItems.forEach(item => {
-                        const row = document.createElement('tr');
-                        row.className = 'table-row';
-                        row.innerHTML = `<td class="p-3 font-medium">${item.id}</td><td class="p-3">${item.name}</td><td class="p-3 text-red-500 font-semibold">${item.quantity}</td>`;
-                        lowStockTableBody.appendChild(row);
+            let totalStockValue = 0;
+            let totalSalesAmount = 0;
+            const lowStockItems = [];
+            stockData.forEach(item => { totalStockValue += (item.quantity || 0) * (item.price || 0); if ((item.quantity || 0) <= LOW_STOCK_THRESHOLD) lowStockItems.push(item); });
+            
+            // Calculate total sales considering returns
+            salesData.forEach(s => {
+                let saleTotal = (s.totals && s.totals.grandTotal) ? s.totals.grandTotal : 0;
+                if (s.returnedItems && s.returnedItems.length > 0) {
+                    let returnedValue = 0;
+                    s.returnedItems.forEach(returnedItem => {
+                        const originalItem = s.items.find(item => item.id === returnedItem.id);
+                        if (originalItem) {
+                            returnedValue += originalItem.price * returnedItem.quantity;
+                        }
                     });
+                    saleTotal -= returnedValue;
                 }
-            } finally {
-                loader.classList.add('hidden');
+                totalSalesAmount += saleTotal;
+            });
+
+            document.getElementById('total-stock-value').textContent = formatCurrency(totalStockValue);
+            document.getElementById('total-sales-amount').textContent = formatCurrency(totalSalesAmount);
+            document.getElementById('low-stock-count').textContent = lowStockItems.length;
+            document.getElementById('low-stock-count-list').textContent = lowStockItems.length;
+
+            const lowStockTableBody = document.getElementById('low-stock-table-body');
+            lowStockTableBody.innerHTML = '';
+            if (lowStockItems.length === 0) {
+                lowStockTableBody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-400">No items are currently low in stock.</td></tr>';
+            } else {
+                lowStockItems.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    row.innerHTML = `<td class="p-3 font-medium">${item.id}</td><td class="p-3">${item.name}</td><td class="p-3 text-red-500 font-semibold">${item.quantity}</td>`;
+                    lowStockTableBody.appendChild(row);
+                });
             }
         }
 
@@ -591,56 +631,51 @@
         const stockListEl = document.getElementById('stock-list');
 
         async function renderStock() {
-            loader.classList.remove('hidden');
-            try {
-                const stockData = await getAllDocs(STOCK_COLLECTION);
-                stockListEl.innerHTML = '';
-                selectedStockIds.clear();
-                document.getElementById('select-all-stock').checked = false;
+            const stockData = await getAllDocs(STOCK_COLLECTION);
+            stockListEl.innerHTML = '';
+            selectedStockIds.clear();
 
-                if (stockData.length === 0) {
-                    stockListEl.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-400">No stock items found. Add some new products above.</td></tr>';
-                    return;
-                }
-
-                stockData.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.className = 'table-row';
-                    row.innerHTML = `
-                        <td class="p-3"><input type="checkbox" data-id="${item.id}" class="stock-checkbox form-checkbox h-4 w-4 rounded-md"></td>
-                        <td class="p-3 font-medium">${item.id}</td>
-                        <td class="p-3">${item.name}</td>
-                        <td class="p-3">${item.quantity}</td>
-                        <td class="p-3">${formatCurrency(item.price)}</td>
-                        <td class="p-3 space-x-2">
-                            <button class="edit-stock-btn px-3 py-1 bg-yellow-500 text-white rounded-lg" data-id="${item.id}">Edit</button>
-                            <button class="delete-stock-btn px-3 py-1 bg-red-500 text-white rounded-lg" data-id="${item.id}">Delete</button>
-                        </td>
-                    `;
-                    stockListEl.appendChild(row);
-                });
-                stockListEl.querySelectorAll('.stock-checkbox').forEach(cb => cb.addEventListener('change', (e) => {
-                    const id = e.target.dataset.id;
-                    if (e.target.checked) selectedStockIds.add(id); else selectedStockIds.delete(id);
-                    document.getElementById('select-all-stock').checked = (selectedStockIds.size === stockData.length && stockData.length > 0);
-                }));
-                stockListEl.querySelectorAll('.edit-stock-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                    const id = e.target.dataset.id;
-                    const item = await getDocById(STOCK_COLLECTION, id);
-                    if (item) openEditModal(item);
-                }));
-                stockListEl.querySelectorAll('.delete-stock-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                    const id = e.target.dataset.id;
-                    if (confirm('Delete this stock item?')) {
-                        await deleteDocById(STOCK_COLLECTION, id);
-                        await renderStock();
-                        await renderDashboard();
-                        showMessage('Stock item deleted.', 'success');
-                    }
-                }));
-            } finally {
-                loader.classList.add('hidden');
+            if (stockData.length === 0) {
+                stockListEl.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-400">No stock items found. Add some new products above.</td></tr>';
+                return;
             }
+
+            stockData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'table-row';
+                row.innerHTML = `
+                    <td class="p-3"><input type="checkbox" data-id="${item.id}" class="stock-checkbox form-checkbox h-4 w-4 rounded-md"></td>
+                    <td class="p-3 font-medium">${item.id}</td>
+                    <td class="p-3">${item.name}</td>
+                    <td class="p-3">${item.quantity}</td>
+                    <td class="p-3">${formatCurrency(item.price)}</td>
+                    <td class="p-3 space-x-2">
+                        <button class="edit-stock-btn px-3 py-1 bg-yellow-500 text-white rounded-lg" data-id="${item.id}">Edit</button>
+                        <button class="delete-stock-btn px-3 py-1 bg-red-500 text-white rounded-lg" data-id="${item.id}">Delete</button>
+                    </td>
+                `;
+                stockListEl.appendChild(row);
+            });
+            stockListEl.querySelectorAll('.stock-checkbox').forEach(cb => cb.addEventListener('change', (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.checked) selectedStockIds.add(id); else selectedStockIds.delete(id);
+                document.getElementById('select-all-stock').checked = (selectedStockIds.size === stockData.length && stockData.length>0);
+            }));
+            stockListEl.querySelectorAll('.edit-stock-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                const item = await getDocById(STOCK_COLLECTION, id);
+                if (item) openEditModal(item);
+            }));
+            stockListEl.querySelectorAll('.delete-stock-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                if (confirm('Delete this stock item?')) {
+                    showLoader();
+                    await deleteDocById(STOCK_COLLECTION, id);
+                    await renderStock();
+                    await renderDashboard();
+                    hideLoader();
+                }
+            }));
         }
 
         document.getElementById('select-all-stock').addEventListener('change', async (e) => {
@@ -648,45 +683,13 @@
             const stockData = await getAllDocs(STOCK_COLLECTION);
             stockListEl.querySelectorAll('.stock-checkbox').forEach(cb => { cb.checked = isChecked; const id=cb.dataset.id; if(isChecked) selectedStockIds.add(id); else selectedStockIds.delete(id); });
         });
-        document.getElementById('btn-add-stock').addEventListener('click', async () => {
-            loader.classList.remove('hidden');
-            try {
-                const stockCode = document.getElementById('add-stock-code').value.trim();
-                const name = document.getElementById('add-stock-name').value.trim();
-                const price = parseFloat(document.getElementById('add-stock-price').value);
-                const quantity = parseInt(document.getElementById('add-stock-quantity').value,10);
-                if (stockCode && name && !isNaN(price) && !isNaN(quantity) && quantity >= 0) {
-                    const existing = await getDocById(STOCK_COLLECTION, stockCode);
-                    if (existing) {
-                        showMessage('Stock code exists. Use edit to update.', 'error');
-                        return;
-                    }
-                    const item = { id: stockCode, name, price, quantity };
-                    await setDocById(STOCK_COLLECTION, stockCode, item);
-                    showMessage('Stock item added successfully!', 'success');
-                    document.getElementById('add-stock-code').value=''; document.getElementById('add-stock-name').value='';
-                    document.getElementById('add-stock-price').value=''; document.getElementById('add-stock-quantity').value='';
-                    await renderStock(); await renderDashboard();
-                } else { showMessage('Please fill out all fields correctly.', 'error'); }
-            } finally {
-                loader.classList.add('hidden');
-            }
-        });
-
         document.getElementById('btn-delete-selected').addEventListener('click', async () => {
-            loader.classList.remove('hidden');
-            try {
-                if (selectedStockIds.size===0) { showMessage('Select at least one item to delete.', 'error'); return; }
-                if (!confirm('Delete selected items?')) {
-                     loader.classList.add('hidden'); // Hide loader if user cancels confirm
-                    return;
-                }
-                for (const id of selectedStockIds) { await deleteDocById(STOCK_COLLECTION, id); }
-                selectedStockIds.clear(); await renderStock(); await renderDashboard();
-                showMessage('Selected items deleted.', 'success');
-            } finally {
-                loader.classList.add('hidden');
-            }
+            if (selectedStockIds.size===0) { showAlert('Select at least one', 'info'); return; }
+            if (!confirm('Delete selected items?')) return;
+            showLoader();
+            for (const id of selectedStockIds) { await deleteDocById(STOCK_COLLECTION, id); }
+            selectedStockIds.clear(); await renderStock(); await renderDashboard();
+            hideLoader();
         });
         // Edit modal logic
         const editModal = document.getElementById('edit-modal');
@@ -700,19 +703,17 @@
             editModal.classList.remove('hidden');
         }
         document.getElementById('edit-modal-save').addEventListener('click', async () => {
-            loader.classList.remove('hidden');
-            try {
-                const id = currentEditingId;
-                const name = document.getElementById('edit-stock-name').value.trim();
-                const quantity = parseInt(document.getElementById('edit-stock-quantity').value,10);
-                const price = parseFloat(document.getElementById('edit-stock-price').value);
-                if (name && !isNaN(quantity) && !isNaN(price) && quantity >= 0) {
-                    await setDocById(STOCK_COLLECTION, id, { id, name, quantity, price });
-                    showMessage('Stock item updated successfully!', 'success'); editModal.classList.add('hidden'); await renderStock(); await renderDashboard();
-                } else { showMessage('Please fill all fields correctly.', 'error'); }
-            } finally {
-                loader.classList.add('hidden');
-            }
+            const id = currentEditingId;
+            const name = document.getElementById('edit-stock-name').value.trim();
+            const quantity = parseInt(document.getElementById('edit-stock-quantity').value,10);
+            const price = parseFloat(document.getElementById('edit-stock-price').value);
+            if (name && !isNaN(quantity) && !isNaN(price)) {
+                
+                showLoader();
+                await setDocById(STOCK_COLLECTION, id, { id, name, quantity, price });
+                showAlert('Stock item updated successfully!', 'success'); editModal.classList.add('hidden'); await renderStock(); await renderDashboard();
+                hideLoader();
+            } else { showAlert('Fill all fields correctly', 'error'); }
         });
         document.getElementById('edit-modal-cancel').addEventListener('click', () => editModal.classList.add('hidden'));
 
@@ -720,38 +721,34 @@
         const csvFileInput = document.getElementById('csv-file-input');
         document.getElementById('btn-import-csv').addEventListener('click', () => csvFileInput.click());
         csvFileInput.addEventListener('change', async (event) => {
-            loader.classList.remove('hidden');
-            try {
-                const file = event.target.files[0]; if(!file) return;
-                const text = await file.text();
-                const rows = text.split(/\r?\n/).map(r=>r.trim()).filter(r=>r.length>0);
-                if (rows.length<=1) { showMessage('CSV file is empty or contains only headers.', 'error'); return; }
-                for (let i=1;i<rows.length;i++){
-                    const [stockCode,name,price,quantity] = rows[i].split(',').map(x=>x.trim());
-                    if (stockCode && name && !isNaN(parseFloat(price)) && !isNaN(parseInt(quantity,10)) && parseInt(quantity, 10) >= 0) {
-                        await setDocById(STOCK_COLLECTION, stockCode, { id: stockCode, name, price: parseFloat(price), quantity: parseInt(quantity,10) });
-                    }
+            const file = event.target.files[0]; if(!file) return;
+            showLoader();
+            const text = await file.text();
+            const rows = text.split(/\r?\n/).map(r=>r.trim()).filter(r=>r.length>0);
+            if (rows.length<=1) { showAlert('CSV empty or only headers', 'error'); hideLoader(); return; }
+            for (let i=1;i<rows.length;i++){
+                
+                const [stockCode,name,price,quantity] = rows[i].split(',').map(x=>x.trim());
+                if (stockCode && name && !isNaN(parseFloat(price)) && !isNaN(parseInt(quantity,10))) {
+                    await setDocById(STOCK_COLLECTION, stockCode, { id: stockCode, name, price: parseFloat(price), quantity: parseInt(quantity,10) });
                 }
-                showMessage('Stock data imported successfully!', 'success'); await renderStock(); await renderDashboard();
-            } finally {
-                loader.classList.add('hidden');
             }
+            
+            showAlert('Import complete', 'success'); await renderStock(); await renderDashboard();
+            hideLoader();
         });
         document.getElementById('btn-export-csv').addEventListener('click', async () => {
-            loader.classList.remove('hidden');
-            try {
-                const stockData = await getAllDocs(STOCK_COLLECTION);
-                if (stockData.length===0) { showMessage('No data to export.', 'warning'); return; }
-                const headers = ['Stock Code','Name','Quantity','Price'];
-                const csv = [headers.join(','), ...stockData.map(i=>`${i.id},"${i.name}",${i.quantity},${i.price}`)].join('\n');
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'stock_data.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-            } finally {
-                loader.classList.add('hidden');
-            }
+            showLoader();
+            const stockData = await getAllDocs(STOCK_COLLECTION);
+            if (stockData.length===0) { showAlert('No data to export', 'info'); hideLoader(); return; }
+            const headers = ['Stock Code','Name','Quantity','Price'];
+            const csv = [headers.join(','), ...stockData.map(i=>`${i.id},"${i.name}",${i.quantity},${i.price}`)].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'stock_data.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            hideLoader();
         });
-        document.getElementById('btn-export-pdf').addEventListener('click', () => showMessage('PDF export requires a library like jsPDF (not included).', 'warning'));
-
+        document.getElementById('btn-export-pdf').addEventListener('click', () => showAlert('PDF export requires a library like jsPDF (not included).', 'info'));
         // --- Invoice logic ---
         const stockCodeInput = document.getElementById('stock-code-input');
         const addItemBtn = document.getElementById('add-item-btn');
@@ -759,30 +756,43 @@
         const savePrintBtn = document.getElementById('save-print-btn');
         const invoiceModal = document.getElementById('invoice-modal');
         const invoiceBillContent = document.getElementById('invoice-bill-content');
+        
+        const paymentStatusSelect = document.getElementById('payment-status');
+        const paidAmountContainer = document.getElementById('paid-amount-container');
+        const paidAmountInput = document.getElementById('paid-amount');
+        const paymentModeSelect = document.getElementById('payment-mode'); // Added payment mode select
+
+        paymentStatusSelect.addEventListener('change', (e) => {
+            const status = e.target.value;
+            if (status === 'Partially Paid') {
+                paidAmountContainer.classList.remove('hidden');
+            } else {
+                paidAmountContainer.classList.add('hidden');
+                paidAmountInput.value = '';
+            }
+            updateInvoiceTotals();
+        });
+
 
         let invoiceItems = [];
         stockCodeInput.addEventListener('keydown', (e)=>{ if(e.key==='Tab'){ e.preventDefault(); addItemBtn.click(); } });
 
         addItemBtn.addEventListener('click', async () => {
-            loader.classList.remove('hidden');
-            try {
-                const stockCode = stockCodeInput.value.trim(); if(!stockCode){ showMessage('Please enter a stock code.', 'error'); return; }
-                const stockItem = await getDocById(STOCK_COLLECTION, stockCode);
-                if (!stockItem) { showMessage('Stock code not found.', 'error'); return; }
-                if (stockItem.quantity < 1) { showMessage('This item is out of stock.', 'warning'); return; }
-                const existing = invoiceItems.find(it => it.id === stockCode);
-                if (existing) { showMessage('Item already added to the invoice.', 'warning'); stockCodeInput.value=''; return; }
-                invoiceItems.push({ id: stockItem.id, name: stockItem.name, price: stockItem.price, quantity: 1, discount:0, gst:18 });
-                renderInvoiceItems(); updateInvoiceTotals(); stockCodeInput.value='';
-            } finally {
-                loader.classList.add('hidden');
-            }
+            const stockCode = stockCodeInput.value.trim(); if(!stockCode){ showAlert('Enter stock code', 'info'); return; }
+            const stockItem = await getDocById(STOCK_COLLECTION, stockCode);
+            if (!stockItem) { showAlert('Stock code not found', 'error'); return; }
+            if (stockItem.quantity < 1) { showAlert('Stock is zero', 'warning'); return; }
+            
+            const existing = invoiceItems.find(it => it.id === stockCode);
+            if (existing) { showAlert('Item already added', 'warning'); stockCodeInput.value=''; return; }
+            invoiceItems.push({ id: stockItem.id, name: stockItem.name, price: stockItem.price, quantity: 1, discount:0, gst:18 });
+            renderInvoiceItems(); updateInvoiceTotals(); stockCodeInput.value='';
         });
         function renderInvoiceItems(){
             invoiceItemListEl.innerHTML='';
             if (invoiceItems.length===0) { invoiceItemListEl.innerHTML='<tr><td colspan="7" class="p-4 text-center text-gray-400">No items added to invoice.</td></tr>'; return; }
             invoiceItems.forEach((item,index)=>{
-                const total = (item.quantity * item.price) * (1 - item.discount / 100) * (1 + item.gst / 100);
+                const total = (item.quantity*item.price)*(1-item.discount/100)*(1+item.gst/100);
                 const row = document.createElement('tr'); row.className='table-row';
                 row.innerHTML = `
                     <td class="p-3 font-medium">${item.name}</td>
@@ -802,310 +812,448 @@
                 invoiceItemListEl.appendChild(row);
             });
 
-            invoiceItemListEl.querySelectorAll('.qty-inc').forEach(btn=>btn.addEventListener('click', async (e)=>{ const index = parseInt(e.target.dataset.index); const stockItem = await getDocById(STOCK_COLLECTION, invoiceItems[index].id); if(invoiceItems[index].quantity < (stockItem ? stockItem.quantity : invoiceItems[index].quantity)){ invoiceItems[index].quantity++; renderInvoiceItems(); updateInvoiceTotals(); } else showMessage('Cannot exceed available stock.', 'warning'); }));
+            invoiceItemListEl.querySelectorAll('.qty-inc').forEach(btn=>btn.addEventListener('click', async (e)=>{ const index = parseInt(e.target.dataset.index); const stockItem = await getDocById(STOCK_COLLECTION, invoiceItems[index].id); if(invoiceItems[index].quantity < (stockItem?stockItem.quantity:invoiceItems[index].quantity)){ invoiceItems[index].quantity++; renderInvoiceItems(); updateInvoiceTotals(); } else showAlert('Cannot exceed available stock.', 'warning'); }));
             invoiceItemListEl.querySelectorAll('.qty-dec').forEach(btn=>btn.addEventListener('click',(e)=>{ const index=parseInt(e.target.dataset.index); if(invoiceItems[index].quantity>1){ invoiceItems[index].quantity--; renderInvoiceItems(); updateInvoiceTotals(); } }));
             invoiceItemListEl.querySelectorAll('input[data-field]').forEach(input=>input.addEventListener('input',(e)=>{ const index=parseInt(e.target.dataset.index); const field=e.target.dataset.field; let val=parseFloat(e.target.value); if(field==='discount'){ if(val<0) val=0; if(val>100) val=100; invoiceItems[index].discount=val; } renderInvoiceItems(); updateInvoiceTotals(); }));
-            invoiceItemListEl.querySelectorAll('.quantity-input').forEach(inp=>inp.addEventListener('input', async (e)=>{ const index=parseInt(e.target.dataset.index); let val=parseInt(e.target.value,10); if(isNaN(val)||val<1) val=1; const stockItem = await getDocById(STOCK_COLLECTION, invoiceItems[index].id); if(stockItem && val > stockItem.quantity){ showMessage('Cannot exceed available stock.', 'warning'); val = stockItem.quantity; e.target.value = val; } invoiceItems[index].quantity=val; renderInvoiceItems(); updateInvoiceTotals(); }));
+            invoiceItemListEl.querySelectorAll('.quantity-input').forEach(inp=>inp.addEventListener('input', async (e)=>{ const index=parseInt(e.target.dataset.index); let val=parseInt(e.target.value,10); if(isNaN(val)||val<1) val=1; const stockItem = await getDocById(STOCK_COLLECTION, invoiceItems[index].id); if(stockItem && val>stockItem.quantity){ showAlert('Cannot exceed available stock', 'warning'); val=stockItem.quantity; e.target.value=val; } invoiceItems[index].quantity=val; renderInvoiceItems(); updateInvoiceTotals(); }));
             invoiceItemListEl.querySelectorAll('.remove-item-btn').forEach(btn=>btn.addEventListener('click',(e)=>{ const index=parseInt(e.target.dataset.index); invoiceItems.splice(index,1); renderInvoiceItems(); updateInvoiceTotals(); }));
         }
 
         function updateInvoiceTotals(){
-            let subtotal=0,totalDiscount=0,totalGST=0, grandTotal=0;
-            invoiceItems.forEach(item=>{ 
-                const itemSubtotal = item.price * item.quantity; 
-                const itemDiscount = itemSubtotal * (item.discount / 100); 
-                const itemTotalAfterDiscount = itemSubtotal - itemDiscount; 
-                const itemGST = itemTotalAfterDiscount * (item.gst / 100); 
-                subtotal += itemSubtotal; 
-                totalDiscount += itemDiscount; 
-                totalGST += itemGST;
-                grandTotal += itemTotalAfterDiscount + itemGST;
+            let subtotal = 0, totalDiscount = 0, totalGST = 0, grandTotal = 0;
+            invoiceItems.forEach(item => {
+                const base = item.price * item.quantity;
+                const discountAmount = base * (item.discount/100);
+                const afterDiscount = base - discountAmount;
+                const gstAmount = afterDiscount * (item.gst/100);
+                
+                const total = afterDiscount + gstAmount;
+                subtotal += base;
+                totalDiscount += discountAmount;
+                totalGST += gstAmount;
+                grandTotal += total;
             });
             document.getElementById('subtotal').textContent = formatCurrency(subtotal);
             document.getElementById('total-discount').textContent = formatCurrency(totalDiscount);
             document.getElementById('total-gst').textContent = formatCurrency(totalGST);
             document.getElementById('grand-total').textContent = formatCurrency(grandTotal);
-            const paidAmount = parseFloat(document.getElementById('paid-amount').value) || 0; 
-            document.getElementById('balance').value = (paidAmount - grandTotal).toFixed(2);
-        }
-
-        document.getElementById('paid-amount').addEventListener('input', updateInvoiceTotals);
-        // Save invoice -> store in Firestore sales and decrement stock quantities
-        document.getElementById('save-print-btn').addEventListener('click', async () => {
-            loader.classList.remove('hidden');
-            try {
-                if (invoiceItems.length===0) { showMessage('Please add at least one item to the invoice.', 'error'); return; }
-                const invoiceNo = document.getElementById('invoice-no').value || generateInvoiceNo();
-                const invoiceDate = document.getElementById('invoice-date').value || new Date().toISOString().slice(0,10);
-                const customerName = document.getElementById('customer-name').value;
-                const customerPhone = document.getElementById('customer-phone').value;
-                const customerEmail = document.getElementById('customer-email').value;
-                const customerAddress = document.getElementById('customer-address').value;
-                const paymentMode = document.getElementById('payment-mode').value;
-                const paidAmount = parseFloat(document.getElementById('paid-amount').value) || 0;
-                const balance = parseFloat(document.getElementById('balance').value) || 0;
-
-                // Calculate totals
-                let totals = { subtotal: 0, discount: 0, gst: 0, grandTotal: 0 };
-                invoiceItems.forEach(it => {
-                    const itemSubtotal = it.price * it.quantity;
-                    const itemDiscount = itemSubtotal * (it.discount / 100);
-                    const afterDiscount = itemSubtotal - itemDiscount;
-                    const itemGST = afterDiscount * (it.gst / 100);
-
-                    totals.subtotal += itemSubtotal;
-                    totals.discount += itemDiscount;
-                    totals.gst += itemGST;
-                    totals.grandTotal += afterDiscount + itemGST;
-                });
-
-                const invoiceData = { 
-                    invoiceNo, 
-                    invoiceDate, 
-                    customer: {name: customerName, phone: customerPhone, email: customerEmail, address: customerAddress}, 
-                    items: invoiceItems, 
-                    paymentMode, 
-                    paidAmount, 
-                    balance, 
-                    totals, 
-                    timestamp: Date.now(), 
-                    returned: false 
-                };
-                
-                await setDocById(SALES_COLLECTION, invoiceNo, invoiceData);
-
-                // Update stock quantities
-                for(const it of invoiceItems){
-                    const stock = await getDocById(STOCK_COLLECTION, it.id);
-                    if(stock){
-                        await updateDocById(STOCK_COLLECTION, it.id, { quantity: stock.quantity - it.quantity });
-                    }
-                }
-                
-                showMessage('Invoice saved successfully!', 'success');
-                await renderSales(); 
-                await renderStock(); 
-                await renderDashboard();
-
-                // Show invoice bill modal
-                const invoiceHtml = `
-                    <h2 class="text-xl font-bold mb-4">Invoice ${invoiceNo}</h2>
-                    <div class="space-y-2 text-sm">
-                        <p><strong>Date:</strong> ${new Date(invoiceData.timestamp).toLocaleString()}</p>
-                        <p><strong>Customer:</strong> ${customerName}</p>
-                        <p><strong>Phone:</strong> ${customerPhone}</p>
-                        <p><strong>Address:</strong> ${customerAddress}</p>
-                    </div>
-                    <hr class="my-4">
-                    <table class="w-full text-left table-auto">
-                        <thead>
-                            <tr class="font-bold">
-                                <th class="p-2">Item</th>
-                                <th class="p-2">Qty</th>
-                                <th class="p-2">Price</th>
-                                <th class="p-2">Disc.</th>
-                                <th class="p-2">GST</th>
-                                <th class="p-2 text-right">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${invoiceItems.map(item => `
-                                <tr>
-                                    <td class="p-2">${item.name}</td>
-                                    <td class="p-2">${item.quantity}</td>
-                                    <td class="p-2">${formatCurrency(item.price)}</td>
-                                    <td class="p-2">${item.discount}%</td>
-                                    <td class="p-2">${item.gst}%</td>
-                                    <td class="p-2 text-right">${formatCurrency((item.price * item.quantity) * (1 - item.discount / 100) * (1 + item.gst / 100))}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    <hr class="my-4">
-                    <div class="text-right space-y-1">
-                        <p>Subtotal: ${formatCurrency(totals.subtotal)}</p>
-                        <p>Total Discount: ${formatCurrency(totals.discount)}</p>
-                        <p>Total GST: ${formatCurrency(totals.gst)}</p>
-                        <p class="text-2xl font-bold">Grand Total: ${formatCurrency(totals.grandTotal)}</p>
-                        <p>Paid: ${formatCurrency(paidAmount)}</p>
-                        <p>Balance: ${formatCurrency(balance)}</p>
-                    </div>
-                `;
-                invoiceBillContent.innerHTML = invoiceHtml;
-                invoiceModal.classList.remove('hidden');
-                invoiceItems = [];
-                renderInvoiceItems(); 
-                document.getElementById('invoice-no').value = generateInvoiceNo();
-                document.getElementById('invoice-date').value = new Date().toISOString().slice(0, 10);
-                document.getElementById('customer-name').value = '';
-                document.getElementById('customer-phone').value = '';
-                document.getElementById('customer-email').value = '';
-                document.getElementById('customer-address').value = '';
-                document.getElementById('paid-amount').value = '';
-                updateInvoiceTotals();
-            } finally {
-                loader.classList.add('hidden');
+            const paidAmount = parseFloat(paidAmountInput.value) || 0;
+            const status = paymentStatusSelect.value;
+            if(status === 'Full Paid') {
+                paidAmountInput.value = grandTotal.toFixed(2);
+                document.getElementById('balance').value = 0;
+            } else if (status === 'Not Paid') {
+                paidAmountInput.value = 0;
+                document.getElementById('balance').value = -grandTotal.toFixed(2);
+            } else {
+                document.getElementById('balance').value = (paidAmount - grandTotal).toFixed(2);
             }
+        }
+        
+        paidAmountInput.addEventListener('input', updateInvoiceTotals);
+        
+        // UPDATED: Save and Print function with QR code
+        savePrintBtn.addEventListener('click', async () => {
+            if(invoiceItems.length===0){ showAlert('Add at least one item', 'info'); return; }
+            const invoiceNo = document.getElementById('invoice-no').value || generateInvoiceNo();
+            const invoiceDate = document.getElementById('invoice-date').value || new Date().toISOString().slice(0,10);
+            const customerName = document.getElementById('customer-name').value;
+            const customerPhone = document.getElementById('customer-phone').value;
+            const customerEmail = document.getElementById('customer-email').value;
+            const customerAddress = document.getElementById('customer-address').value;
+            const paymentStatus = paymentStatusSelect.value;
+            const paymentMode = paymentModeSelect.value; // Get the selected payment mode
+            let paidAmount = parseFloat(paidAmountInput.value) || 0;
+            const grandTotal = parseFloat(document.getElementById('grand-total').textContent.replace('₹', ''));
+            
+            if(paymentStatus === 'Full Paid') {
+                paidAmount = grandTotal;
+            } else if (paymentStatus === 'Not Paid') {
+                paidAmount = 0;
+            }
+
+            const balance = paidAmount - grandTotal;
+            
+            // Totals
+            let totals = { 
+                subtotal:0, discount:0, gst:0, grandTotal:0 };
+            invoiceItems.forEach(it=>{ totals.subtotal += it.price*it.quantity; totals.discount += (it.price*it.quantity)*(it.discount/100); const afterDiscount = it.price*it.quantity - (it.price*it.quantity)*(it.discount/100); totals.gst += afterDiscount*(it.gst/100); totals.grandTotal += afterDiscount*(1+it.gst/100); });
+            const invoiceData = { invoiceNo, invoiceDate, customer:{name:customerName,phone:customerPhone,email:customerEmail,address:customerAddress}, items: invoiceItems, paymentStatus, paymentMode, paidAmount, balance, totals, timestamp: Date.now(), returned:false, returnedItems: [] }; // Added paymentMode to data
+            
+            showLoader();
+            await setDocById(SALES_COLLECTION, invoiceNo, invoiceData);
+            for(const it of invoiceItems){
+                const stock = await getDocById(STOCK_COLLECTION,it.id);
+                if(stock){ await updateDocById(STOCK_COLLECTION,it.id,{...stock, quantity: stock.quantity - it.quantity}); }
+            }
+
+            showAlert('Invoice saved!', 'success');
+            await fetchAllSales(); await renderStock(); await renderDashboard();
+
+            // Show invoice bill modal
+            const upiId = 'jeyajegadeesh1606-1@oksbi';
+const qrCodeSection = paymentMode === 'Online' ? `
+<div style="text-align:center; margin: 30px 0;">
+    <p style="font-weight: 600; margin-bottom: 10px; color:#0f172a;">Scan to Pay</p>
+    <div id="qr-code-placeholder" style="display:inline-block; background:#fff; padding:12px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1);"></div>
+</div>
+` : '';
+
+const billHtml = `
+  <div style="font-family: 'Inter', sans-serif; font-size: 14px; color: #1e293b; background: #f9fafb; padding: 32px; border-radius: 16px; max-width: 860px; margin: auto; box-shadow: 0 6px 20px rgba(0,0,0,0.08);">
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+      <div>
+        <h1 style="font-size: 28px; font-weight: 800; margin: 0; color:#0f172a;">MULLAI ENTERPRISES</h1>
+        <p style="font-size: 16px; margin: 6px 0; color:#334155;">PAINTS & ELECTRICALS</p>
+        <p style="margin: 4px 0; color:#475569;"><strong>Head office:</strong> 107/D6, Subban Street, Thittasalai, Theni - 625 531</p>
+        <p style="margin: 4px 0; color:#475569;"><strong>Branch:</strong> Krishna Nagar Petrol pump side, Thevaram Main Road, Bodinayakanur - 625 513</p>
+        <p style="margin: 4px 0; color:#475569;"><strong>GSTIN:</strong> 33ABHFM0000G2ZX</p>
+      </div>
+      <div style="text-align: right; font-size: 14px; color:#334155;">
+        <p style="margin: 0; font-weight: 600;">📞 Contact</p>
+        <p style="margin: 2px 0;">Bodi: 6745985432</p>
+        <p style="margin: 2px 0;">Theni: 7856342198</p>
+      </div>
+    </div>
+
+    <div style="height:2px; background:linear-gradient(to right,#3b82f6,#06b6d4); margin:20px 0; border-radius:4px;"></div>
+
+    <div style="display: flex; justify-content: space-between; margin-bottom: 24px; background:#fff; padding:16px 20px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <div>
+        <p style="margin: 2px 0; font-weight:600;"><span style="color:#3b82f6;">Customer:</span> ${customerName || 'Walk-in'}</p>
+        <p style="margin: 2px 0;"><strong>Phone:</strong> ${customerPhone || ''}</p>
+        <p style="margin: 2px 0;"><strong>Address:</strong> ${customerAddress || 'N/A'}</p>
+      </div>
+      <div style="text-align: right;">
+        <p style="margin: 2px 0;"><strong>Invoice No:</strong> ${invoiceNo}</p>
+        <p style="margin: 2px 0;"><strong>Date:</strong> ${invoiceDate}</p>
+      </div>
+    </div>
+
+    <table style="width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 24px; font-size: 14px; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+      <thead>
+        <tr style="background: linear-gradient(to right, #3b82f6, #06b6d4); color:#fff;">
+          <th style="text-align: left; padding: 12px;">Item</th>
+          <th style="text-align: right; padding: 12px;">Qty</th>
+          <th style="text-align: right; padding: 12px;">Price</th>
+          <th style="text-align: right; padding: 12px;">Discount</th>
+          <th style="text-align: right; padding: 12px;">GST</th>
+          <th style="text-align: right; padding: 12px;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${invoiceItems.map(item => `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px;">${item.name}</td>
+            <td style="text-align: right; padding: 12px;">${item.quantity}</td>
+            <td style="text-align: right; padding: 12px;">${formatCurrency(item.price)}</td>
+            <td style="text-align: right; padding: 12px;">${item.discount}%</td>
+            <td style="text-align: right; padding: 12px;">${item.gst}%</td>
+            <td style="text-align: right; padding: 12px; font-weight:600; color:#0f172a;">${formatCurrency((item.price * item.quantity * (1 - item.discount / 100)) * (1 + item.gst / 100))}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <div style="text-align: right; background:#fff; padding:16px 20px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.05); font-size: 14px;">
+      <p style="margin: 6px 0;"><strong>Subtotal:</strong> ${formatCurrency(totals.subtotal)}</p>
+      <p style="margin: 6px 0;"><strong>Total Discount:</strong> ${formatCurrency(totals.discount)}</p>
+      <p style="margin: 6px 0;"><strong>Total GST:</strong> ${formatCurrency(totals.gst)}</p>
+      <p style="font-size: 18px; font-weight: 700; margin: 15px 0; color:#3b82f6;"><strong>Grand Total:</strong> ${formatCurrency(totals.grandTotal)}</p>
+      <p style="margin: 6px 0;"><strong>Payment Status:</strong> ${paymentStatus}</p>
+      <p style="margin: 6px 0;"><strong>Payment Mode:</strong> ${paymentMode}</p>
+      <p style="margin: 6px 0;"><strong>Paid Amount:</strong> ${formatCurrency(paidAmount)}</p>
+      <p style="margin: 6px 0; font-weight:600; color:${balance > 0 ? '#dc2626' : '#16a34a'};"><strong>Balance:</strong> ${formatCurrency(balance)}</p>
+    </div>
+
+    ${qrCodeSection}
+
+    <p style="text-align: center; font-size: 15px; font-style: italic; color:#475569; margin-top: 20px;">✨ Thank you for your business! ✨</p>
+  </div>
+`;
+
+            invoiceBillContent.innerHTML = billHtml;
+
+            if (paymentMode === 'Online') {
+                const qrPlaceholder = document.getElementById('qr-code-placeholder');
+                if (qrPlaceholder) {
+                    const upiLink = `upi://pay?pa=${upiId}&pn=Mullai%20Store&am=${paidAmount.toFixed(2)}&cu=INR`;
+                    new QRCode(qrPlaceholder, {
+                        text: upiLink,
+                        width: 300,
+                        height: 300,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                }
+            }
+
+
+            invoiceModal.classList.remove('hidden');
+            invoiceItems = [];
+            renderInvoiceItems(); updateInvoiceTotals();
+            hideLoader();
         });
 
         document.getElementById('close-invoice-modal').addEventListener('click',()=>invoiceModal.classList.add('hidden'));
 
-        // --- Sales rendering ---
-        async function renderSales(){
-            loader.classList.remove('hidden');
-            try {
-                const sales = await getAllDocs(SALES_COLLECTION);
-                const salesListEl = document.getElementById('sales-list');
-                salesListEl.innerHTML='';
-                if(sales.length===0){ salesListEl.innerHTML='<tr><td colspan="6" class="p-4 text-center text-gray-400">No sales recorded.</td></tr>'; return; }
-                
-                const sortedSales = sales.sort((a,b) => b.timestamp - a.timestamp);
+        // --- Sales rendering with search/filter ---
+        const salesSearchInput = document.getElementById('sales-search-input');
+        let allSalesData = [];
 
-                sortedSales.forEach(sale=>{
-                    const row=document.createElement('tr');
-                    row.innerHTML=`
-                        <td class="p-3">${new Date(sale.timestamp).toLocaleString()}</td>
-                        <td class="p-3">${sale.invoiceNo}</td>
-                        <td class="p-3">${sale.customer.name}</td>
-                        <td class="p-3">${formatCurrency(sale.totals.grandTotal)}</td>
-                        <td class="p-3">${sale.returned ? 'Returned' : 'OK'}</td>
-                        <td class="p-3 text-center space-x-2">
-                            <button class="view-invoice-btn px-3 py-1 bg-indigo-500 text-white rounded-lg" data-id="${sale.invoiceNo}">View</button>
-                            ${!sale.returned ? `<button class="return-invoice-btn px-3 py-1 bg-red-500 text-white rounded-lg" data-id="${sale.invoiceNo}">Return</button>` : ''}
-                        </td>`;
-                    salesListEl.appendChild(row);
-                });
-                salesListEl.querySelectorAll('.view-invoice-btn').forEach(btn=>btn.addEventListener('click',async e=>{
-                    loader.classList.remove('hidden');
-                    try {
-                        const id=e.target.dataset.id; const sale=await getDocById(SALES_COLLECTION,id);
-                        if(sale){ 
-                            const invoiceHtml = `
-                                <h2 class="text-xl font-bold mb-4">Invoice ${sale.invoiceNo}</h2>
-                                <div class="space-y-2 text-sm">
-                                    <p><strong>Date:</strong> ${new Date(sale.timestamp).toLocaleString()}</p>
-                                    <p><strong>Customer:</strong> ${sale.customer.name}</p>
-                                    <p><strong>Phone:</strong> ${sale.customer.phone}</p>
-                                    <p><strong>Address:</strong> ${sale.customer.address}</p>
-                                </div>
-                                <hr class="my-4">
-                                <table class="w-full text-left table-auto">
-                                    <thead>
-                                        <tr class="font-bold">
-                                            <th class="p-2">Item</th>
-                                            <th class="p-2">Qty</th>
-                                            <th class="p-2">Price</th>
-                                            <th class="p-2">Disc.</th>
-                                            <th class="p-2">GST</th>
-                                            <th class="p-2 text-right">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${sale.items.map(item => `
-                                            <tr>
-                                                <td class="p-2">${item.name}</td>
-                                                <td class="p-2">${item.quantity}</td>
-                                                <td class="p-2">${formatCurrency(item.price)}</td>
-                                                <td class="p-2">${item.discount}%</td>
-                                                <td class="p-2">${item.gst}%</td>
-                                                <td class="p-2 text-right">${formatCurrency((item.price * item.quantity) * (1 - item.discount / 100) * (1 + item.gst / 100))}</td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                                <hr class="my-4">
-                                <div class="text-right space-y-1">
-                                    <p>Subtotal: ${formatCurrency(sale.totals.subtotal)}</p>
-                                    <p>Total Discount: ${formatCurrency(sale.totals.discount)}</p>
-                                    <p>Total GST: ${formatCurrency(sale.totals.gst)}</p>
-                                    <p class="text-2xl font-bold">Grand Total: ${formatCurrency(sale.totals.grandTotal)}</p>
-                                    <p>Paid: ${formatCurrency(sale.paidAmount)}</p>
-                                    <p>Balance: ${formatCurrency(sale.balance)}</p>
-                                </div>
-                            `;
-                            invoiceBillContent.innerHTML = invoiceHtml;
-                            invoiceModal.classList.remove('hidden'); 
-                        }
-                    } finally {
-                        loader.classList.add('hidden');
-                    }
-                }));
-                salesListEl.querySelectorAll('.return-invoice-btn').forEach(btn=>btn.addEventListener('click',async e=>{
-                    loader.classList.remove('hidden');
-                    try {
-                        const id=e.target.dataset.id; const sale=await getDocById(SALES_COLLECTION,id);
-                        if(!sale) return; if(sale.returned){ showMessage('This invoice has already been returned.', 'warning'); return; }
-                        const returnModal = document.getElementById('return-modal');
-                        const returnItemListEl = document.getElementById('return-item-list');
-                        const returnInvoiceNoEl = document.getElementById('return-invoice-no');
-                        
-                        returnInvoiceNoEl.textContent = id;
-                        returnItemListEl.innerHTML = '';
-
-                        sale.items.forEach(item => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td class="p-2">${item.name}</td>
-                                <td class="p-2">${item.quantity}</td>
-                                <td class="p-2">
-                                    <input type="number" min="0" max="${item.quantity}" value="${item.quantity}" data-id="${item.id}" class="w-20 border rounded-md p-1 return-qty-input">
-                                </td>
-                            `;
-                            returnItemListEl.appendChild(row);
-                        });
-                        returnModal.classList.remove('hidden');
-                        loader.classList.add('hidden'); // Hide loader while user is interacting with modal
-
-                        document.getElementById('return-modal-confirm').onclick = async () => {
-                            loader.classList.remove('hidden');
-                            try {
-                                const returnItems = Array.from(returnItemListEl.querySelectorAll('.return-qty-input')).map(input => ({
-                                    id: input.dataset.id,
-                                    quantity: parseInt(input.value, 10)
-                                }));
-                                
-                                for(const item of returnItems) {
-                                    if (item.quantity > 0) {
-                                        const stock = await getDocById(STOCK_COLLECTION, item.id);
-                                        if (stock) {
-                                            await updateDocById(STOCK_COLLECTION, item.id, { quantity: stock.quantity + item.quantity });
-                                        }
-                                    }
-                                }
-
-                                await updateDocById(SALES_COLLECTION, id, { ...sale, returned: true });
-                                showMessage('Return processed successfully!', 'success');
-                                returnModal.classList.add('hidden');
-                                await renderSales();
-                                await renderStock();
-                                await renderDashboard();
-                            } finally {
-                                loader.classList.add('hidden');
-                            }
-                        };
-
-                        document.getElementById('return-modal-cancel').onclick = () => returnModal.classList.add('hidden');
-                    } finally {
-                        // This finally block is for the button click itself, not the modal interaction
-                        // Loader is managed within the inner async function
-                    }
-                }));
-            } finally {
-                loader.classList.add('hidden');
-            }
+        async function fetchAllSales() {
+            allSalesData = await getAllDocs(SALES_COLLECTION);
+            allSalesData.sort((a, b) => b.timestamp - a.timestamp); // Sort by timestamp descending
+            renderSales();
         }
 
-        // Init: render dashboard on load
-        document.addEventListener('DOMContentLoaded', async () => { 
-            loader.classList.remove('hidden');
-            try {
-                await renderDashboard();
-                document.getElementById('invoice-no').value = generateInvoiceNo();
-                document.getElementById('invoice-date').value = new Date().toISOString().slice(0, 10);
-                renderInvoiceItems(); // Initialize invoice item list
-            } finally {
-                loader.classList.add('hidden');
+        // UPDATED: Render sales with return status and actions
+        async function renderSales() {
+            const salesListEl = document.getElementById('sales-list');
+            salesListEl.innerHTML = '';
+            
+            const searchTerm = salesSearchInput.value.toLowerCase().trim();
+            const filteredSales = allSalesData.filter(sale => 
+                sale.invoiceNo.toLowerCase().includes(searchTerm) || 
+                (sale.customer.name && sale.customer.name.toLowerCase().includes(searchTerm))
+            );
+
+            if(filteredSales.length === 0){
+                salesListEl.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-400">No matching sales records found.</td></tr>';
+                return;
             }
+
+            filteredSales.forEach(sale => {
+                const row = document.createElement('tr');
+                row.className = 'table-row';
+                const status = sale.returned ? 'Returned' : 'OK';
+                row.innerHTML = `
+                    <td class="p-3">${new Date(sale.timestamp).toLocaleString()}</td>
+                    <td class="p-3">${sale.invoiceNo}</td>
+                    <td class="p-3">${sale.customer.name}</td>
+                    <td class="p-3">${formatCurrency(sale.totals.grandTotal)}</td>
+                    <td class="p-3">${status}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button class="view-invoice-btn px-3 py-1 bg-indigo-500 text-white rounded-lg" data-id="${sale.invoiceNo}">View</button>
+                        <button class="return-invoice-btn px-3 py-1 bg-red-500 text-white rounded-lg" data-id="${sale.invoiceNo}" ${sale.returned ? 'disabled' : ''}>Return</button>
+                    </td>`;
+                salesListEl.appendChild(row);
+            });
+            
+            // UPDATED: View invoice function to handle returned items
+            salesListEl.querySelectorAll('.view-invoice-btn').forEach(btn => btn.addEventListener('click', async e => {
+                const id = e.target.dataset.id;
+                const sale = await getDocById(SALES_COLLECTION, id);
+                if(sale){
+                    // Calculate net total for display
+                    let netTotal = sale.totals.grandTotal;
+                    let returnedValue = 0;
+                    if (sale.returnedItems && sale.returnedItems.length > 0) {
+                        sale.returnedItems.forEach(returnedItem => {
+                            const originalItem = sale.items.find(item => item.id === returnedItem.id);
+                            if (originalItem) {
+                                returnedValue += originalItem.price * returnedItem.quantity;
+                            }
+                        });
+                        netTotal -= returnedValue;
+                    }
+                    
+                    const returnedItemsHtml = sale.returnedItems && sale.returnedItems.length > 0 ? `
+                        <h4 style="font-size: 16px; font-weight: bold; margin-top: 20px;">Returned Items</h4>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <thead>
+                                <tr style="background-color: #f3f4f6;">
+                                    <th style="text-align: left; padding: 10px; border-bottom: 2px solid #e5e7eb;">Item</th>
+                                    <th style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">Return Qty</th>
+                                    <th style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${sale.returnedItems.map(item => `
+                                    <tr>
+                                        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${sale.items.find(i=>i.id===item.id).name}</td>
+                                        <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.quantity}</td>
+                                        <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e5e7eb;">${formatCurrency(item.quantity * sale.items.find(i=>i.id===item.id).price)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : '';
+                    
+                    const upiId = 'jeyajegadeesh1606-1@oksbi'; // <-- UPDATED: Your UPI ID
+                    const qrCodeSection = sale.paymentMode === 'Online' ? `
+                        <div class="qr-code-container">
+                            <p style="font-weight: bold;">Scan to Pay</p>
+                            <div id="qr-code-placeholder"></div>
+                        </div>
+                    ` : '';
+
+                    const billHtml = `
+                        <div style="font-family: 'Inter', sans-serif; font-size: 14px; color: black; background-color: white; padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                                <div style="text-align: left;">
+                                    <h2 style="font-size: 24px; font-weight: bold; margin: 0; padding: 0;">MULLAI ENTERPRISES</h2>
+                                    <p style="font-size: 16px; margin: 0; padding: 0;">PAINTS & ELECTRICALS</p>
+                                    <p style="margin: 5px 0 0 0;"><strong>Head office:</strong> 107/D6, Subban Street, Thittasalai, Theni - 625 531</p>
+                                    <p style="margin: 0;"><strong>Branch:</strong> Krishna Nagar Petrol pump side, Thevaram Main Road, Bodinayakanur - 625 513</p>
+                                    <p style="margin: 5px 0 0 0;"><strong>GSTIN:</strong> 33ABHFM0000G2ZX</p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="margin: 0; font-weight: bold;">Contact Numbers</p>
+                                    <p style="margin: 0;">Bodi: 6745985432</p>
+                                    <p style="margin: 0;">Theni: 7856342198</p>
+                                </div>
+                            </div>
+                            <hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                                <div>
+                                    <p style="margin: 0;"><strong>Customer:</strong> ${sale.customer.name || 'Walk-in'}</p>
+                                    <p style="margin: 0;"><strong>Phone:</strong> ${sale.customer.phone || 'N/A'}</p>
+                                    <p style="margin: 0;"><strong>Address:</strong> ${sale.customer.address || 'N/A'}</p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="margin: 0;"><strong>Invoice No:</strong> ${sale.invoiceNo}</p>
+                                    <p style="margin: 0;"><strong>Date:</strong> ${sale.invoiceDate}</p>
+                                </div>
+                            </div>
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <thead>
+                                    <tr style="background-color: #f3f4f6;">
+                                        <th style="text-align: left; padding: 10px; border-bottom: 2px solid #e5e7eb;">Item</th>
+                                        <th style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">Qty</th>
+                                        <th style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">Price</th>
+                                        <th style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">Discount (%)</th>
+                                        <th style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">GST (%)</th>
+                                        <th style="text-align: right; padding: 10px; border-bottom: 2px solid #e5e7eb;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sale.items.map(item => `
+                                        <tr>
+                                            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
+                                            <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.quantity}</td>
+                                            <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e5e7eb;">${formatCurrency(item.price)}</td>
+                                            <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.discount}%</td>
+                                            <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.gst}%</td>
+                                            <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e5e7eb;">${formatCurrency((item.price * item.quantity * (1 - item.discount / 100)) * (1 + item.gst / 100))}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            ${returnedItemsHtml}
+                            <div style="text-align: right; margin-top: 20px;">
+                                <p style="margin: 5px 0;"><strong>Subtotal:</strong> ${formatCurrency(sale.totals.subtotal)}</p>
+                                <p style="margin: 5px 0;"><strong>Total Discount:</strong> ${formatCurrency(sale.totals.discount)}</p>
+                                <p style="margin: 5px 0;"><strong>Total GST:</strong> ${formatCurrency(sale.totals.gst)}</p>
+                                <p style="font-size: 18px; font-weight: bold; margin: 15px 0;"><strong>Grand Total:</strong> ${formatCurrency(sale.totals.grandTotal)}</p>
+                                ${returnedValue > 0 ? `<p style="font-size: 18px; font-weight: bold; margin: 15px 0; color: red;"><strong>Amount Returned:</strong> -${formatCurrency(returnedValue)}</p>` : ''}
+                                ${returnedValue > 0 ? `<p style="font-size: 18px; font-weight: bold; margin: 15px 0;"><strong>Net Total:</strong> ${formatCurrency(netTotal)}</p>` : ''}
+                                <p style="margin: 5px 0;"><strong>Payment Status:</strong> ${sale.paymentStatus}</p>
+                                <p style="margin: 5px 0;"><strong>Payment Mode:</strong> ${sale.paymentMode}</p>
+                                <p style="margin: 5px 0;"><strong>Paid Amount:</strong> ${formatCurrency(sale.paidAmount)}</p>
+                                <p style="margin: 5px 0;"><strong>Balance:</strong> ${formatCurrency(sale.balance)}</p>
+                            </div>
+                            ${qrCodeSection}
+                            <hr style="border: 1px dashed #e5e7eb; margin: 20px 0;">
+                            <p style="text-align: center; font-size: 16px; font-style: italic;">Thank you for your business!</p>
+                        </div>
+                    `;
+                    invoiceBillContent.innerHTML = billHtml;
+
+                    if (sale.paymentMode === 'Online') {
+                        const qrPlaceholder = document.getElementById('qr-code-placeholder');
+                        if (qrPlaceholder) {
+                            const upiLink = `upi://pay?pa=${upiId}&pn=Mullai%20Store&am=${netTotal.toFixed(2)}&cu=INR`;
+                            new QRCode(qrPlaceholder, {
+                                text: upiLink,
+                                width: 150,
+                                height: 150,
+                                colorDark: "#000000",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.H
+                            });
+                        }
+                    }
+
+                    invoiceModal.classList.remove('hidden');
+                }
+            }));
+
+            // UPDATED: Return function to store returned items
+            salesListEl.querySelectorAll('.return-invoice-btn').forEach(btn => btn.addEventListener('click', async e => {
+                const id = e.target.dataset.id;
+                const sale = await getDocById(SALES_COLLECTION, id);
+                if (!sale) return;
+                
+                // Show return modal with all items and their original quantities
+                document.getElementById('return-invoice-no').textContent = id;
+                const returnItemList = document.getElementById('return-item-list');
+                returnItemList.innerHTML = '';
+                sale.items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-2">${item.name}</td>
+                        <td class="p-2">${item.quantity}</td>
+                        <td class="p-2">
+                            <input type="number" data-id="${item.id}" max="${item.quantity}" min="0" value="0" class="w-16 p-1 border rounded input-style">
+                        </td>
+                    `;
+                    returnItemList.appendChild(row);
+                });
+
+                document.getElementById('return-modal-confirm').onclick = async () => {
+                    showLoader();
+                    const returnQuantities = Array.from(returnItemList.querySelectorAll('input')).map(input => ({
+                        id: input.dataset.id,
+                        quantity: parseInt(input.value, 10) || 0
+                    }));
+
+                    const anyItemsToReturn = returnQuantities.some(item => item.quantity > 0);
+                    if (!anyItemsToReturn) {
+                        showAlert('No items selected for return.', 'info');
+                        hideLoader();
+                        return;
+                    }
+
+                    const returnedItemsList = returnQuantities.filter(item => item.quantity > 0);
+                    
+                    for(const it of returnedItemsList) {
+                        const stock = await getDocById(STOCK_COLLECTION, it.id);
+                        if (stock) { await updateDocById(STOCK_COLLECTION, it.id, { ...stock, quantity: stock.quantity + it.quantity }); }
+                    }
+                    
+                    await updateDocById(SALES_COLLECTION, id, {
+                        ...sale,
+                        returned: true, // Mark as returned to prevent future returns on this invoice
+                        returnedItems: returnedItemsList // Store returned items
+                    });
+                    
+                    showAlert('Return processed successfully!', 'success');
+                    document.getElementById('return-modal').classList.add('hidden');
+                    await fetchAllSales();
+                    await renderStock();
+                    await renderDashboard();
+                    hideLoader();
+                };
+
+                document.getElementById('return-modal-cancel').onclick = () => {
+                    document.getElementById('return-modal').classList.add('hidden');
+                };
+                
+                document.getElementById('return-modal').classList.remove('hidden');
+            }));
+            
+            document.getElementById('sales-search-input').addEventListener('input', renderSales);
+        }
+        
+        // Init: render dashboard on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            showLoader();
+            await renderDashboard();
+            await fetchAllSales();
+            hideLoader();
         });
     </script>
 </body>
