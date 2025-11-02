@@ -1,47 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
-  <style>
-    body {
-      font-family: "Poppins", sans-serif;
-      background: #f9fafb;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    img {
-      width: 100px;
-      border-radius: 50%;
-      margin-bottom: 10px;
-    }
-    #logout {
-      background: #ff4d4d;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 8px 16px;
-      cursor: pointer;
-      margin-top: 15px;
-    }
-    #logout:hover {
-      background: #e63b3b;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MJ Digi Motors - Dashboard</title>
 
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signOut, onAuthStateChanged } 
       from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getDatabase, ref, push, onValue, set, query, orderByChild, equalTo } 
+      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
-    // ✅ Same Firebase Config
+    // 🔹 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBuTQZ0zwLMLdfzzD2KjEhaGk6BTzJK72s",
       authDomain: "secondhand-803a3.firebaseapp.com",
+      databaseURL: "https://secondhand-803a3-default-rtdb.firebaseio.com/",
       projectId: "secondhand-803a3",
       storageBucket: "secondhand-803a3.firebasestorage.app",
       messagingSenderId: "554970268999",
@@ -51,33 +28,1389 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getDatabase(app);
 
-    // 🔹 Protect Page (redirect if not logged in)
+    let currentUserId = null; // NEW: Store current user's UID
+    let currentUserEmail = null; 
+    let cartCount = 0; 
+
+    // 🔹 Toast Notification Function (Top Center)
+    window.showToast = (message, type = 'success') => {
+      let toastContainer = document.getElementById('toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+      }
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerText = message;
+      toastContainer.prepend(toast);
+
+      setTimeout(() => {
+        toast.classList.add('fade-out');
+        toast.addEventListener('transitionend', () => toast.remove());
+      }, 3000); 
+    };
+    
+    // 🛒 Load Cart Count from Firebase
+    function loadCartCount() {
+        if (!currentUserId) return;
+
+        // Listen for real-time changes to the user's cart node
+        onValue(ref(db, `users/${currentUserId}/cart`), (snapshot) => {
+            const cartItems = snapshot.val();
+            cartCount = cartItems ? Object.keys(cartItems).length : 0;
+            document.getElementById('cart-count').innerText = cartCount;
+        }, {
+            onlyOnce: false // Keep listening for changes
+        });
+    }
+
+    // 🛒 Add Vehicle to Cart in Firebase
+    window.addToCart = async (vehicleKey, vehicleName) => {
+        if (!currentUserId) {
+            return showToast("Please log in to add items to your cart.", "error");
+        }
+        
+        try {
+            // Set the item in the cart (using set to ensure the key is the vehicle ID)
+            await set(ref(db, `users/${currentUserId}/cart/${vehicleKey}`), true);
+            
+            showToast(`${vehicleName} added to cart! Total items: ${cartCount + 1}`, "success");
+            // loadCartCount handles the UI update via onValue listener
+        } catch (err) {
+            showToast(`Error adding to cart: ${err.message}`, "error");
+        }
+    };
+    
+    // 📦 Simulate a Direct Purchase (Log as Order)
+    window.buyVehicle = async (vehicleKey, vehicleName, price) => {
+        if (!currentUserId) {
+            return showToast("Please log in to place an order.", "error");
+        }
+        
+        try {
+            const orderRef = push(ref(db, `users/${currentUserId}/orders`));
+            await set(orderRef, {
+                vehicleKey: vehicleKey,
+                vehicleName: vehicleName,
+                price: price,
+                timestamp: new Date().toISOString(),
+                status: "processing"
+            });
+            showToast(`Order placed for ${vehicleName} (₹${parseInt(price).toLocaleString('en-IN')})!`, "success");
+        } catch (err) {
+            showToast(`Error placing order: ${err.message}`, "error");
+        }
+    };
+
+
+    // 🛒 NEW: Load Cart Items
+    window.loadCartItems = () => {
+        const cartList = document.getElementById("cartItemsList");
+        const cartSummary = document.getElementById("cartSummary");
+        cartList.innerHTML = ''; // Clear previous content
+        let totalCartPrice = 0;
+        let itemsInCart = 0;
+
+        if (!currentUserId) {
+            document.getElementById('cart-count-display').innerText = 0;
+            cartList.innerHTML = '<p class="empty-state">Please log in to view your shopping cart.</p>';
+            cartSummary.innerHTML = '<p class="total-price-text">Total: <span>₹0</span></p>';
+            document.getElementById('checkoutButton').disabled = true;
+            return;
+        }
+
+        const cartRef = ref(db, `users/${currentUserId}/cart`);
+        // Use an onValue listener to react to real-time changes
+        onValue(cartRef, async (snapshot) => {
+            const cartKeys = snapshot.val();
+            itemsInCart = cartKeys ? Object.keys(cartKeys).length : 0;
+            document.getElementById('cart-count-display').innerText = itemsInCart;
+            cartList.innerHTML = '';
+            totalCartPrice = 0;
+
+            if (itemsInCart === 0) {
+                cartList.innerHTML = '<p class="empty-state">Your cart is empty. Start shopping!</p>';
+                cartSummary.innerHTML = '<p class="total-price-text">Total: <span>₹0</span></p>';
+                document.getElementById('checkoutButton').disabled = true;
+                return;
+            }
+            
+            document.getElementById('checkoutButton').disabled = false;
+
+            // Fetch details for each cart item
+            const vehiclePromises = Object.keys(cartKeys).map(key => new Promise((resolve, reject) => {
+                // Fetch vehicle details only once to get current price/details
+                onValue(ref(db, `vehicles/${key}`), (vehicleSnapshot) => {
+                    const v = vehicleSnapshot.val();
+                    if (v && v.status === 'approved') {
+                        v.key = vehicleSnapshot.key;
+                        resolve(v);
+                    } else {
+                        // Item might have been removed or unapproved
+                        resolve(null); 
+                    }
+                }, { onlyOnce: true });
+            }));
+
+            const vehicles = (await Promise.all(vehiclePromises)).filter(v => v !== null);
+
+            vehicles.forEach(v => {
+                const displayPrice = v.adminPrice || v.price || 0;
+                const formattedPrice = parseInt(displayPrice).toLocaleString('en-IN');
+                totalCartPrice += parseInt(displayPrice);
+
+                const cartItem = document.createElement("div");
+                cartItem.className = "cart-item-card";
+                cartItem.innerHTML = `
+                    <div class="item-image" style="background-image: url('${v.img}');"></div>
+                    <div class="item-details">
+                        <h3>${v.name}</h3>
+                        <p class="item-specs">Year: ${v.year} | ${v.km} km</p>
+                    </div>
+                    <p class="item-price">₹${formattedPrice}</p>
+                    <div class="item-actions">
+                        <button class="remove-btn" onclick="removeFromCart('${v.key}', '${v.name}')">Remove</button>
+                    </div>
+                `;
+                cartList.appendChild(cartItem);
+            });
+
+            cartSummary.innerHTML = `<p class="total-price-text">Subtotal: <span>₹${totalCartPrice.toLocaleString('en-IN')}</span></p>
+                                     <p class="total-price-text">Tax: <span>₹0</span></p>
+                                     <div style="border-top: 1px solid var(--border-color); margin-top: 10px; padding-top: 10px;">
+                                        <p class="total-price-text">Total: <span style="font-size: 26px;">₹${totalCartPrice.toLocaleString('en-IN')}</span></p>
+                                     </div>`;
+
+        }, { onlyOnce: false }); // Keep listening for changes (e.g., if another tab adds an item)
+    };
+
+    // 🛒 NEW: Remove item from cart
+    window.removeFromCart = async (vehicleKey, vehicleName) => {
+        if (!currentUserId) return;
+        try {
+            await set(ref(db, `users/${currentUserId}/cart/${vehicleKey}`), null);
+            showToast(`${vehicleName} removed from cart.`, "success");
+        } catch (err) {
+            showToast(`Error removing item: ${err.message}`, "error");
+        }
+    };
+
+    // 💰 NEW: Simulate Checkout
+    window.checkoutCart = async () => {
+        if (!currentUserId) return;
+        try {
+            // For a real app, you would move items to orders, handle payment, etc.
+            // Here, we simulate by logging the event and clearing the cart.
+            await set(ref(db, `users/${currentUserId}/cart`), null);
+            showToast("Checkout Successful! Your order has been placed and is being processed.", "success");
+            showSection('order'); // Redirect user to orders page
+        } catch (err) {
+            showToast(`Error during checkout: ${err.message}`, "error");
+        }
+    }
+
+
+    // 📦 NEW: Load Orders History
+    window.loadOrdersHistory = () => {
+        const ordersTableBody = document.getElementById("ordersTableBody");
+        ordersTableBody.innerHTML = '<tr><td colspan="5">Loading your orders...</td></tr>';
+
+        if (!currentUserId) {
+            ordersTableBody.innerHTML = '<tr><td colspan="5">Please log in to view your order history.</td></tr>';
+            return;
+        }
+        
+        // Listen for user's orders
+        onValue(ref(db, `users/${currentUserId}/orders`), (snapshot) => {
+            ordersTableBody.innerHTML = "";
+            let recordsFound = 0;
+            const orders = [];
+
+            snapshot.forEach((child) => {
+                const order = child.val();
+                order.orderId = child.key;
+                orders.push(order);
+            });
+            
+            // Sort by timestamp (newest first)
+            orders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            orders.forEach((order) => {
+                recordsFound++;
+                const formattedPrice = parseInt(order.price || 0).toLocaleString('en-IN');
+                // Format date nicely
+                const orderDate = new Date(order.timestamp).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                let statusClass = '';
+                let statusText = order.status;
+
+                if (order.status === 'processing') {
+                    statusClass = 'pending'; 
+                } else if (order.status === 'shipped') {
+                    statusClass = 'approved'; 
+                } else if (order.status === 'delivered') {
+                    statusClass = 'approved'; 
+                    statusText = 'Delivered';
+                } else if (order.status === 'cancelled') {
+                    statusClass = 'rejected';
+                }
+
+                const row = `
+                    <tr>
+                        <td data-label="Order ID">#${order.orderId.substring(0, 8).toUpperCase()}</td>
+                        <td data-label="Vehicle">${order.vehicleName}</td>
+                        <td data-label="Price">₹${formattedPrice}</td>
+                        <td data-label="Date">${orderDate}</td>
+                        <td data-label="Status"><span class="status-badge ${statusClass}">${statusText.charAt(0).toUpperCase() + statusText.slice(1)}</span></td>
+                    </tr>
+                `;
+                ordersTableBody.insertAdjacentHTML("beforeend", row);
+            });
+
+            if (recordsFound === 0) {
+                ordersTableBody.innerHTML = '<tr><td colspan="5">You have no orders yet. Click "Buy Now" on a vehicle to place an order.</td></tr>';
+            }
+        }, (error) => {
+            console.error("Error loading order history:", error);
+            ordersTableBody.innerHTML = '<tr><td colspan="5">Error loading order history.</td></tr>';
+        });
+    };
+
+
+    // 🔒 Protect Dashboard & Load User Info
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         window.location.href = "index.html";
       } else {
-        // Show user info
-        document.getElementById("photo").src = user.photoURL;
-        document.getElementById("name").innerText = user.displayName;
-        document.getElementById("email").innerText = user.email;
+        currentUserId = user.uid; // Store UID
+        currentUserEmail = user.email; 
+        
+        // Load the persistent cart count
+        loadCartCount();
+
+        // Profile view content
+        document.getElementById("userNameProfile").innerText = user.displayName || "User";
+        document.getElementById("userEmailProfile").innerText = user.email;
+        document.getElementById("userPhotoProfile").src = user.photoURL || "https://static-00.iconduck.com/assets.00/user-avatar-icon-512x512-nghi2896.png";
+        
+        // Drawer Profile content
+        document.getElementById("userNameDrawer").innerText = user.displayName || "User";
+        document.getElementById("userEmailDrawer").innerText = user.email;
+        document.getElementById("userPhotoDrawer").src = user.photoURL || "https://static-00.iconduck.com/assets.00/user-avatar-icon-512x512-nghi2896.png";
+
+        // Pre-fill seller details on the Sell page
+        document.getElementById("selleremail").value = user.email;
+        document.getElementById("sellername").value = user.displayName || "";
       }
     });
 
-    // 🔹 Logout
+    // 🔹 Logout Function
     window.logout = () => {
       signOut(auth).then(() => {
-        localStorage.removeItem("user");
+        showToast("Logged out successfully.", "success");
         window.location.href = "index.html";
       });
     };
+
+    // 🔹 Add Vehicle (sent to pending approval) - UNCHANGED
+    window.addVehicle = () => {
+      // Seller Details
+      const sellerName = document.getElementById("sellername").value.trim();
+      const sellerEmail = document.getElementById("selleremail").value.trim();
+      const sellerPhone = document.getElementById("sellerphone").value.trim();
+      const sellerAltPhone = document.getElementById("selleraltphone").value.trim();
+      const sellerAddress = document.getElementById("selleraddress").value.trim();
+      
+      // Vehicle Details
+      const name = document.getElementById("vname").value.trim();
+      const description = document.getElementById("vdescription").value.trim(); 
+      const type = document.getElementById("vtype").value;
+      const year = document.getElementById("vyear").value.trim();
+      const km = document.getElementById("vkm").value.trim();
+      const price = document.getElementById("vprice").value.trim();
+      
+      // Image Handling (Use first image URL as primary img, and all in a vimages string)
+      const imagesInput = document.getElementById("vimages").value.trim(); 
+      const imageArray = imagesInput.split(',').map(url => url.trim()).filter(url => url !== "");
+      const img = imageArray[0] || "https://images.unsplash.com/photo-1596557802874-954848074902?fit=crop&w=600&h=300&q=80";
+
+
+      // Updated validation check
+      if (!sellerName || !sellerEmail || !sellerPhone || !sellerAddress || !name || !description || !year || !km || !price) {
+        showToast("Please fill all required fields (Seller and Vehicle details)!", "warning");
+        return;
+      }
+
+      const vehicleData = {
+        // Seller Information Structure
+        seller: {
+            name: sellerName,
+            email: sellerEmail,
+            phone: sellerPhone,
+            altPhone: sellerAltPhone,
+            address: sellerAddress
+        },
+        // Vehicle Information
+        name,
+        description, 
+        type,
+        year,
+        km,
+        price,
+        img, 
+        vimages: imagesInput, 
+        status: "pending",
+        submittedBy: currentUserEmail 
+      };
+
+      push(ref(db, "vehicles/"), vehicleData)
+        .then(() => {
+          showToast("Vehicle submitted for admin approval!", "success");
+          // Clear form fields
+          document.querySelectorAll("#sell-view input, #sell-view textarea").forEach(i => i.value = "");
+          document.getElementById("vtype").value = "bike";
+          // Re-populate seller details
+          if(auth.currentUser) {
+              document.getElementById("selleremail").value = auth.currentUser.email;
+              document.getElementById("sellername").value = auth.currentUser.displayName || "";
+          }
+          showSection('history'); // Show sell history after submission
+        })
+        .catch((err) => showToast(`Error submitting vehicle: ${err.message}`, "error"));
+    };
+
+    // 🔹 Load Approved Vehicles (Home View) - MODIFIED TO PASS KEY TO BUTTONS
+    const vehicleGrid = document.getElementById("vehicleGrid");
+    onValue(ref(db, "vehicles/"), (snapshot) => {
+      vehicleGrid.innerHTML = "";
+      snapshot.forEach((child) => {
+        const v = child.val();
+        const vehicleKey = child.key; // Get the unique key
+        if (v.status === "approved") {
+          // Use adminPrice as the final approved selling price, falling back to original price.
+          const displayPrice = v.adminPrice || v.price || 0; 
+          const formattedPrice = parseInt(displayPrice).toLocaleString('en-IN');
+
+          const card = document.createElement("div");
+          card.className = "card";
+          card.dataset.type = v.type;
+          card.innerHTML = `
+            <div class="card-image" style="background-image: url('${v.img}');"></div>
+            <div class="card-content">
+              <h3>${v.name}</h3>
+              <p class="specs">Year: <span>${v.year}</span> | ${v.km} <span>km</span></p>
+              <p class="description">${(v.description || 'No description provided.').substring(0, 50)}...</p>
+              <div class="card-actions">
+                <p class="price">₹${formattedPrice}</p>
+                <div class="action-buttons">
+                    <button class="cart-btn" onclick="addToCart('${vehicleKey}', '${v.name}')">
+                        🛒 Add
+                    </button>
+                    <button class="buy-btn" onclick="buyVehicle('${vehicleKey}', '${v.name}', '${displayPrice}')">
+                        Buy Now
+                    </button>
+                </div>
+              </div>
+            </div>
+          `;
+          vehicleGrid.appendChild(card);
+        }
+      });
+      // Re-run filter on new data load
+      filterVehicles(); 
+    });
+
+    // 🔹 Load Sell History - UNCHANGED
+    window.loadSellHistory = async () => {
+        const historyTableBody = document.getElementById("historyTableBody");
+        historyTableBody.innerHTML = "<tr><td colspan='6'>Loading your history...</td></tr>";
+
+        if (!currentUserEmail) {
+            historyTableBody.innerHTML = "<tr><td colspan='6'>Please log in to see your history.</td></tr>";
+            return;
+        }
+
+        try {
+            // Query vehicles submitted by the current user
+            const userHistoryQuery = query(ref(db, "vehicles/"), orderByChild("submittedBy"), equalTo(currentUserEmail));
+            
+            onValue(userHistoryQuery, (snapshot) => {
+                historyTableBody.innerHTML = "";
+                let recordsFound = 0;
+                
+                snapshot.forEach((child) => {
+                    const v = child.val();
+                    recordsFound++;
+
+                    let statusClass = '';
+                    let statusText = '';
+                    let finalPrice = v.price ? parseInt(v.price).toLocaleString('en-IN') : 'N/A';
+
+                    if (v.status === 'approved') {
+                        statusClass = 'approved';
+                        statusText = 'Approved';
+                        finalPrice = v.adminPrice ? parseInt(v.adminPrice).toLocaleString('en-IN') : finalPrice;
+                    } else if (v.status === 'pending') {
+                        statusClass = 'pending';
+                        statusText = 'Pending Admin Review';
+                    } else if (v.status === 'rejected') {
+                        statusClass = 'rejected';
+                        statusText = 'Rejected by Admin';
+                    } else {
+                        statusClass = 'unknown';
+                        statusText = 'Unknown Status';
+                    }
+
+                    const row = `
+                        <tr>
+                            <td data-label="Vehicle Name">${v.name}</td>
+                            <td data-label="Type">${v.type}</td>
+                            <td data-label="Your Price">₹${parseInt(v.price || 0).toLocaleString('en-IN')}</td>
+                            <td data-label="Final Price">₹${finalPrice}</td>
+                            <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                            <td data-label="Action"><button class="action-btn view-details-btn" onclick="showToast('Details for ${v.name} - Status: ${statusText}', 'success')">View Details</button></td>
+                        </tr>
+                    `;
+                    historyTableBody.insertAdjacentHTML("beforeend", row);
+                });
+
+                if (recordsFound === 0) {
+                    historyTableBody.innerHTML = "<tr><td colspan='6'>You have not submitted any vehicles yet.</td></tr>";
+                }
+            }, (error) => {
+                console.error("Error loading sell history:", error);
+                historyTableBody.innerHTML = "<tr><td colspan='6'>Error loading history.</td></tr>";
+            });
+
+        } catch (err) {
+            console.error("Error during history query setup:", err);
+            historyTableBody.innerHTML = "<tr><td colspan='6'>An error occurred.</td></tr>";
+        }
+    };
+
+
+    // 🔹 Drawer Toggle Function
+    window.toggleDrawer = () => {
+        const drawer = document.getElementById('drawer-menu');
+        const overlay = document.getElementById('drawer-overlay');
+        const isVisible = drawer.classList.toggle('open');
+        overlay.style.display = isVisible ? 'block' : 'none';
+        document.body.style.overflow = isVisible ? 'hidden' : 'auto';
+    }
+
+    // 🔹 Section Visibility Manager - UPDATED TO CALL CART/ORDERS LOADERS
+    window.showSection = (sectionId) => {
+        // Close the drawer if open
+        const drawer = document.getElementById('drawer-menu');
+        if (drawer.classList.contains('open')) {
+            toggleDrawer(); 
+        }
+
+        // Hide all sections
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.add('hidden');
+        });
+
+        // Show the requested section
+        document.getElementById(sectionId + '-view').classList.remove('hidden');
+
+        // Update active state in drawer (optional, for visual feedback)
+        document.querySelectorAll('.drawer-nav .nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelector(`.drawer-nav a[data-section-id="${sectionId}"]`)?.classList.add('active');
+        
+        // Load specific data for certain sections
+        if (sectionId === 'history') {
+            loadSellHistory();
+        }
+        if (sectionId === 'cart') {
+             loadCartItems();
+        }
+        if (sectionId === 'order') {
+             loadOrdersHistory();
+        }
+    };
+
+    // Set initial view
+    document.addEventListener('DOMContentLoaded', () => {
+        showSection('home');
+    });
+
   </script>
+
+  <style>
+    :root {
+      --primary-color: #00796B; 
+      --primary-hover: #00695C;
+      --background-color: #f0f2f5;
+      --card-bg: #ffffff;
+      --text-color: #212529;
+      --text-light: #6c757d;
+      --border-color: #e9ecef;
+      --danger-color: #dc3545;
+      --success-bg: #4caf50;
+      --error-bg: #f44336;
+      --warning-bg: #ff9800;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--background-color);
+      margin: 0;
+      padding-top: 60px; /* Space for fixed header */
+      color: var(--text-color);
+    }
+
+    /* --- SECTION VISIBILITY --- */
+    .content-section.hidden {
+        display: none !important;
+    }
+
+    /* --- HEADER & DRAWER (UNCHANGED) --- */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background: var(--primary-color);
+      color: white;
+      padding: 5px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      height: 60px;
+    }
+    .header-left {
+        display: flex;
+        align-items: center;
+    }
+    header h1 { margin: 0; font-size: 20px; font-weight: 700; margin-left: 10px; }
+    
+    #drawer-toggle {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0 10px;
+        line-height: 1;
+    }
+
+    /* Header Right (Cart) */
+    .header-right {
+        display: flex;
+        align-items: center;
+    }
+    .cart-icon {
+        position: relative;
+        cursor: pointer;
+        font-size: 24px;
+        line-height: 1;
+        padding: 0 10px;
+    }
+    .cart-badge {
+        position: absolute;
+        top: -8px;
+        right: 0px;
+        background: var(--danger-color);
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+        font-weight: 700;
+        min-width: 20px;
+        text-align: center;
+        line-height: 1;
+    }
+
+    /* Search Bar (UNCHANGED) */
+    .search-filter {
+      display: flex;
+      gap: 15px;
+      padding: 20px 0; /* Padding relative to main */
+    }
+    .search-filter input, .search-filter select {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        font-size: 15px;
+        width: 100%;
+    }
+
+    /* Drawer Menu Styles (mostly unchanged) */
+    #drawer-menu {
+      position: fixed;
+      top: 0;
+      left: -300px; 
+      width: 280px;
+      height: 100%;
+      background: var(--card-bg);
+      z-index: 10001;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+      transition: left 0.3s ease;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    #drawer-menu.open {
+      left: 0;
+    }
+    #drawer-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        display: none;
+    }
+    .drawer-header {
+        display: flex;
+        justify-content: flex-end;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .drawer-header button {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+    }
+    .drawer-profile {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .drawer-profile img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin-bottom: 10px;
+        object-fit: cover;
+        border: 2px solid var(--primary-color);
+    }
+    .drawer-profile h3 {
+        margin: 0;
+        font-size: 16px;
+    }
+    .drawer-profile p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-light);
+    }
+    .drawer-nav {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .drawer-nav .nav-item {
+        padding: 12px 15px;
+        text-decoration: none;
+        color: var(--text-color);
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        transition: background 0.2s;
+        border-radius: 6px;
+    }
+    .drawer-nav .nav-item:hover, .drawer-nav .nav-item.active {
+        background: var(--border-color);
+    }
+    .drawer-nav .nav-item .icon {
+        margin-right: 15px;
+        font-size: 18px;
+    }
+    .drawer-logout-btn {
+        background: var(--danger-color);
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .drawer-logout-btn:hover {
+        background: #c82333;
+    }
+
+    main {
+      padding: 0 20px;
+    }
+
+    /* Profile Section Styling (UNCHANGED) */
+    .profile-card {
+      display: flex;
+      align-items: center;
+      background: var(--card-bg);
+      margin-top: 20px;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border-left: 4px solid var(--primary-color);
+    }
+    .profile-card img { 
+      width: 60px; 
+      height: 60px;
+      border-radius: 50%; 
+      margin-right: 20px; 
+      object-fit: cover;
+      border: 2px solid var(--primary-color);
+    }
+    .profile-card h3 { margin: 0 0 5px 0; font-size: 18px; font-weight: 600; }
+    .profile-card p { color: var(--text-light); margin: 0; font-size: 14px; }
+
+    /* Vehicle Grid (UNCHANGED) */
+    .section-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-top: 30px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 5px;
+    }
+    .vehicle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 25px;
+    }
+
+    /* Card Styling (UNCHANGED) */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover { 
+      transform: translateY(-5px); 
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .card-image { 
+      width: 100%; 
+      height: 200px; 
+      background-size: cover; 
+      background-position: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .card-content { padding: 18px; }
+    .card-content h3 { 
+      margin: 0 0 8px 0; 
+      color: var(--text-color); 
+      font-size: 18px; 
+      font-weight: 600;
+    }
+    .card-content .specs { 
+      color: var(--text-light); 
+      margin: 5px 0 10px 0; 
+      font-size: 14px; 
+    }
+    .card-content .specs span { font-weight: 500; color: var(--text-color); }
+    .card-content .description { 
+        font-size: 14px; 
+        color: var(--text-color); 
+        margin-bottom: 15px; 
+        min-height: 40px; 
+        overflow: hidden; 
+    }
+
+    /* Card Actions (Buy/Cart) (UNCHANGED) */
+    .card-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+    }
+    .price { 
+      font-size: 22px; 
+      color: var(--primary-color); 
+      font-weight: 700; 
+      margin: 0;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    .buy-btn, .cart-btn {
+        padding: 8px 15px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        width: auto !important; 
+        margin-top: 0;
+    }
+    .buy-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+    }
+    .cart-btn {
+        background: #f0f0f0;
+        color: var(--text-color);
+        border: 1px solid #ddd;
+    }
+
+    /* Sell Vehicle Form Styling (UNCHANGED) */
+    .sell-form-container {
+      background: var(--card-bg);
+      margin-top: 20px;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .sell-form-container h2 { 
+      font-size: 22px; 
+      font-weight: 600; 
+      color: var(--primary-color);
+      margin-top: 0;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .sell-form-container input, .sell-form-container select, .sell-form-container textarea {
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-family: inherit;
+      font-size: 16px;
+    }
+    .sell-form-container textarea {
+        resize: vertical;
+    }
+    .sell-form-container .input-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    .sell-form-container .full-width {
+        grid-column: 1 / -1;
+    }
+    .sell-form-container button {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    .sell-form-container button:hover { background: var(--primary-hover); }
+    .sell-form-container .note {
+        font-size: 12px;
+        color: var(--text-light);
+        margin-top: -10px;
+        margin-bottom: 15px;
+        display: block;
+    }
+
+    /* --- SELL HISTORY / ORDERS TABLE STYLING --- */
+    .history-table, .orders-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background: var(--card-bg);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .history-table th, .history-table td, .orders-table th, .orders-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 14px;
+    }
+    .history-table th, .orders-table th {
+        background: #e9ecef;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    .history-table tr:last-child td, .orders-table tr:last-child td {
+        border-bottom: none;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .status-badge.pending {
+        background-color: #ff980033;
+        color: var(--warning-bg);
+    }
+    .status-badge.approved {
+        background-color: #4caf5033;
+        color: var(--success-bg);
+    }
+    .status-badge.rejected {
+        background-color: #f4433633;
+        color: var(--error-bg);
+    }
+    .history-table .action-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        background: var(--primary-color);
+        color: white;
+    }
+
+    /* --- NEW CART STYLES --- */
+    .cart-container {
+        display: flex;
+        gap: 25px;
+        margin-top: 20px;
+        align-items: flex-start; 
+    }
+    .cart-items-list {
+        flex: 3; 
+        min-height: 200px;
+    }
+    .cart-summary-card {
+        flex: 1; 
+        background: var(--card-bg);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border: 1px solid var(--border-color);
+        position: sticky; 
+        top: 80px;
+    }
+    .cart-summary-card h3 {
+        font-size: 18px;
+        margin-top: 0;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .total-price-text {
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--text-color);
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .total-price-text span {
+        color: var(--primary-color);
+        font-size: 20px;
+        font-weight: 700;
+    }
+    .checkout-btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+    }
+    .checkout-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 50px 20px;
+        background: var(--card-bg);
+        border-radius: 10px;
+        border: 2px dashed var(--border-color);
+        color: var(--text-light);
+        font-size: 18px;
+    }
+
+    /* Cart Item Card */
+    .cart-item-card {
+        display: flex;
+        align-items: center;
+        background: var(--card-bg);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-left: 5px solid var(--primary-color);
+        transition: box-shadow 0.2s;
+    }
+    .cart-item-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .item-image {
+        width: 80px;
+        height: 60px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 6px;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    .item-details {
+        flex-grow: 1;
+    }
+    .item-details h3 {
+        font-size: 16px;
+        margin: 0 0 5px 0;
+        font-weight: 600;
+    }
+    .item-specs {
+        font-size: 13px;
+        color: var(--text-light);
+        margin: 0;
+    }
+    .item-price {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin: 0 30px;
+        flex-shrink: 0;
+    }
+    .remove-btn {
+        background: var(--danger-color);
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+    .remove-btn:hover {
+        background: #c82333;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #343a40;
+      color: #adb5bd;
+      margin-top: 40px;
+      font-size: 14px;
+    }
+
+    /* --- TOAST STYLES (UNCHANGED) --- */
+    #toast-container {
+      position: fixed;
+      top: 20px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      z-index: 10000;
+      display: flex;
+      flex-direction: column-reverse; 
+      align-items: center;
+      max-width: 90%;
+    }
+    .toast {
+      min-width: 250px;
+      max-width: 350px;
+      background-color: var(--text-color);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      opacity: 1;
+      transform: translateY(0); 
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      font-size: 15px;
+      text-align: center;
+    }
+    .toast.fade-out {
+      opacity: 0;
+      transform: translateY(-20px); 
+    }
+    .toast.success { background-color: var(--success-bg); }
+    .toast.error { background-color: var(--error-bg); }
+    .toast.warning { background-color: var(--warning-bg); }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      main {
+          padding: 0 10px;
+      }
+      .profile-card, .sell-form-container {
+        margin: 15px 0;
+        padding: 20px;
+      }
+      .search-filter {
+        flex-direction: column;
+        padding: 10px 0;
+      }
+      .search-filter select {
+        width: 100%;
+      }
+      .sell-form-container .input-group {
+        grid-template-columns: 1fr;
+      }
+      /* Responsive Cart */
+      .cart-container {
+            flex-direction: column;
+        }
+        .cart-summary-card {
+            order: -1; /* Move summary to top on mobile */
+            width: 100%;
+            position: relative;
+            top: 0;
+            margin-bottom: 20px;
+        }
+        .cart-item-card {
+            flex-wrap: wrap;
+            border-left: none;
+            border: 1px solid var(--border-color);
+        }
+        .item-image {
+            margin-bottom: 10px;
+        }
+        .item-details, .item-price {
+            flex-basis: 100%;
+            margin: 0;
+        }
+        .item-price {
+            order: 4; 
+            margin-top: 10px;
+            font-size: 20px;
+        }
+        .item-actions {
+            flex-basis: 100%;
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+        /* Responsive Tables (Sell History and Orders) */
+        .history-table th, .history-table td, .orders-table th, .orders-table td {
+            display: block;
+            width: 100% !important;
+            box-sizing: border-box;
+            text-align: right;
+            padding: 8px 10px;
+        }
+        .history-table thead, .orders-table thead {
+            display: none; 
+        }
+        .history-table tr, .orders-table tr {
+            display: block;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--card-bg);
+            padding: 10px;
+        }
+        .history-table td, .orders-table td {
+            border-bottom: 1px dashed var(--border-color);
+            position: relative;
+        }
+        .history-table td:last-child, .orders-table td:last-child {
+             border-bottom: none;
+        }
+        .history-table td::before, .orders-table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 10px;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-align: left;
+        }
+    }
+  </style>
 </head>
 <body>
-  <h2>Welcome to Your Dashboard</h2>
-  <img id="photo" alt="User Photo">
-  <h3 id="name"></h3>
-  <p id="email"></p>
-  <button id="logout" onclick="logout()">Logout</button>
+  <div id="toast-container"></div>
+  
+  <div id="drawer-menu">
+    <div class="drawer-header">
+        <button onclick="toggleDrawer()">✕</button>
+    </div>
+    <div class="drawer-profile">
+        <img id="userPhotoDrawer" alt="User Photo" />
+        <h3 id="userNameDrawer"></h3>
+        <p id="userEmailDrawer"></p>
+    </div>
+    <nav class="drawer-nav">
+        <a href="#" class="nav-item" data-section-id="home" onclick="showSection('home')">Home</a>
+        <a href="#" class="nav-item" data-section-id="cart" onclick="showSection('cart')">Cart</a> 
+        <a href="#" class="nav-item" data-section-id="order" onclick="showSection('order')">Orders</a> 
+        <a href="#" class="nav-item" data-section-id="sell" onclick="showSection('sell')">Sell Your Own Vehicle</a>
+        <a href="#" class="nav-item" data-section-id="history" onclick="showSection('history')">Sell History</a> 
+        <a href="#" class="nav-item" data-section-id="profile" onclick="showSection('profile')">Profile</a>
+    </nav>
+    <button class="drawer-logout-btn" onclick="logout()">Logout</button>
+  </div>
+  <div id="drawer-overlay" onclick="toggleDrawer()"></div>
+
+  <header>
+    <div class="header-left">
+        <button id="drawer-toggle" onclick="toggleDrawer()">☰</button>
+        <h1>MJ Digi Motors</h1>
+    </div>
+    <div class="header-right">
+        <div class="cart-icon" onclick="showSection('cart')"> 🛒 
+            <span id="cart-count" class="cart-badge">0</span>
+        </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="home-view" class="content-section">
+      <h2 class="section-title">Available Vehicles</h2>
+      
+      <div class="search-filter">
+        <input type="text" placeholder="Search by name, year, or km..." id="search">
+        <select id="filter">
+          <option value="all">All Vehicles</option>
+          <option value="bike">Bikes</option>
+          <option value="car">Cars</option>
+        </select>
+      </div>
+
+      <div class="vehicle-grid" id="vehicleGrid">
+        </div>
+    </div>
+
+    <div id="cart-view" class="content-section hidden">
+        <h2 class="section-title">Shopping Cart (<span id="cart-count-display">0</span> Items)</h2>
+        
+        <div class="cart-container">
+            <div class="cart-items-list" id="cartItemsList">
+                </div>
+            
+            <div class="cart-summary-card">
+                <h3>Order Summary</h3>
+                <div id="cartSummary" class="summary-details">
+                    <p class="total-price-text">Total: <span>₹0</span></p>
+                </div>
+                <button id="checkoutButton" onclick="checkoutCart()" class="buy-btn checkout-btn" disabled>Proceed to Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="order-view" class="content-section hidden">
+        <h2 class="section-title">Your Orders History</h2>
+        <table class="history-table orders-table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Vehicle</th>
+                    <th>Price</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div id="sell-view" class="content-section hidden">
+      <div class="sell-form-container">
+        <h2>Submit Your Vehicle for Sale</h2>
+        
+        <div class="input-group">
+            <input type="text" placeholder="Your Name" id="sellername" required>
+            <input type="email" placeholder="Your Email Id" id="selleremail" required readonly title="Email is pre-filled from your login">
+            <input type="number" placeholder="Your Phone No" id="sellerphone" required>
+            <input type="number" placeholder="Alternate Phone No (Optional)" id="selleraltphone">
+        </div>
+        <input type="text" placeholder="Your Address" id="selleraddress" class="full-width" required>
+
+        <h3 class="section-title" style="font-size: 18px; margin-top: 30px; margin-bottom: 15px; border-bottom: none;">Vehicle Details</h3>
+        <input type="text" placeholder="Vehicle Name (e.g., Honda City)" id="vname" required>
+        <textarea id="vdescription" placeholder="Detailed Description (e.g., Engine condition, extras, accident history)" rows="4" class="full-width" required></textarea>
+        
+        <div class="input-group">
+            <select id="vtype">
+                <option value="bike">Bike</option>
+                <option value="car">Car</option>
+            </select>
+            <input type="number" placeholder="Year (e.g., 2020)" id="vyear" required>
+            <input type="number" placeholder="Kilometers Driven (e.g., 50000)" id="vkm" required>
+            <input type="number" placeholder="Your Expected Price (₹)" id="vprice" required>
+        </div>
+        
+        <input type="text" placeholder="Image URLs (Comma-separated, e.g., url1, url2, url3)" id="vimages" class="full-width" required>
+        <span class="note">Provide multiple high-quality image links (Google Photos, Imgur, etc.) for faster approval.</span>
+
+        <button onclick="addVehicle()">Submit Vehicle for Approval</button>
+      </div>
+    </div>
+    
+    <div id="history-view" class="content-section hidden"> 
+      <h2 class="section-title">Your Vehicle Sell History</h2>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Vehicle Name</th>
+            <th>Type</th>
+            <th>Your Quoted Price</th>
+            <th>Final Selling Price</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="historyTableBody">
+          </tbody>
+      </table>
+    </div>
+
+    <div id="profile-view" class="content-section hidden">
+        <h2 class="section-title">Your Profile</h2>
+        <div class="profile-card">
+            <img id="userPhotoProfile" alt="User Photo" />
+            <div>
+                <h3 id="userNameProfile"></h3>
+                <p id="userEmailProfile"></p>
+                <button onclick="showToast('Profile editing coming soon!', 'warning')" style="margin-top: 10px; padding: 5px 10px; font-size: 14px; width: auto; background: var(--text-light);">Edit Profile</button>
+            </div>
+        </div>
+    </div>
+
+  </main>
+
+  <footer>
+    © 2025 MJ Digi Motors — Second Hand Bike & Car Marketplace
+  </footer>
+
+  <script>
+    // 🔍 Filter Logic (kept here for global scope access)
+    const search = document.getElementById("search");
+    const filter = document.getElementById("filter");
+    const vehicleGridElement = document.getElementById("vehicleGrid");
+
+    search.addEventListener("input", filterVehicles);
+    filter.addEventListener("change", filterVehicles);
+
+    function filterVehicles() {
+      const query = search.value.toLowerCase();
+      const type = filter.value;
+      const cards = vehicleGridElement.querySelectorAll(".card");
+      cards.forEach(card => {
+        const cardText = card.innerText.toLowerCase();
+        const matchesSearch = cardText.includes(query);
+        const matchesType = (type === "all" || card.dataset.type === type);
+        // Only show if the parent view is the home view (to prevent filtering on hidden elements)
+        if (document.getElementById('home-view').classList.contains('hidden')) return;
+
+        card.style.display = (matchesSearch && matchesType) ? "grid" : "none";
+      });
+    }
+  </script>
 </body>
 </html>
