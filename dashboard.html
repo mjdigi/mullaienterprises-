@@ -9,10 +9,10 @@
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } 
-      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getDatabase, ref, push, onValue, set, query, orderByChild, equalTo } 
-      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+    import { getAuth, signOut, onAuthStateChanged, updateProfile } 
+      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js"; // Added updateProfile
+    import { getDatabase, ref, push, onValue, set, query, orderByChild, equalTo, get } 
+      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js"; // Added get
 
     // 🔹 Firebase Config
     const firebaseConfig = {
@@ -30,9 +30,16 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    let currentUserId = null; // NEW: Store current user's UID
+    let currentUserId = null; 
     let currentUserEmail = null; 
+    let currentUserPhone = null; // NEW: Store current user's phone
+    let currentUserAddress = null; // NEW: Store current user's address
     let cartCount = 0; 
+
+    // 🔹 Utility Functions for Loader Bar
+    const loader = document.getElementById('loader-bar');
+    window.showLoader = () => { loader.style.display = 'block'; };
+    window.hideLoader = () => { loader.style.display = 'none'; };
 
     // 🔹 Toast Notification Function (Top Center)
     window.showToast = (message, type = 'success') => {
@@ -85,12 +92,21 @@
         }
     };
     
-    // 📦 Simulate a Direct Purchase (Log as Order)
+    // 📦 Simulate a Direct Purchase (Log as Order) - MODIFIED
     window.buyVehicle = async (vehicleKey, vehicleName, price) => {
         if (!currentUserId) {
             return showToast("Please log in to place an order.", "error");
         }
-        
+
+        // ⭐ NEW: Check for required Mobile Number
+        if (!currentUserPhone || currentUserPhone.length < 10) {
+            showToast("Mobile Number is required to place an order. Please update your profile.", "error");
+            showSection('profile'); // Redirect to profile view
+            return;
+        }
+
+        showLoader(); // Show loader during purchase
+
         try {
             const orderRef = push(ref(db, `users/${currentUserId}/orders`));
             await set(orderRef, {
@@ -98,11 +114,20 @@
                 vehicleName: vehicleName,
                 price: price,
                 timestamp: new Date().toISOString(),
-                status: "processing"
+                status: "processing",
+                // Include current contact info for the order record
+                buyerInfo: { 
+                    name: auth.currentUser.displayName,
+                    email: currentUserEmail,
+                    phone: currentUserPhone,
+                    address: currentUserAddress || 'Not Provided'
+                }
             });
             showToast(`Order placed for ${vehicleName} (₹${parseInt(price).toLocaleString('en-IN')})!`, "success");
         } catch (err) {
             showToast(`Error placing order: ${err.message}`, "error");
+        } finally {
+            hideLoader(); // Hide loader after completion
         }
     };
 
@@ -199,9 +224,19 @@
         }
     };
 
-    // 💰 NEW: Simulate Checkout
+    // 💰 NEW: Simulate Checkout (Modified to check for phone number)
     window.checkoutCart = async () => {
         if (!currentUserId) return;
+
+        // ⭐ NEW: Check for required Mobile Number for checkout too
+        if (!currentUserPhone || currentUserPhone.length < 10) {
+            showToast("Mobile Number is required for checkout. Please update your profile.", "error");
+            showSection('profile'); // Redirect to profile view
+            return;
+        }
+
+        showLoader(); // Show loader during checkout
+
         try {
             // For a real app, you would move items to orders, handle payment, etc.
             // Here, we simulate by logging the event and clearing the cart.
@@ -210,6 +245,8 @@
             showSection('order'); // Redirect user to orders page
         } catch (err) {
             showToast(`Error during checkout: ${err.message}`, "error");
+        } finally {
+            hideLoader();
         }
     }
 
@@ -280,8 +317,82 @@
         });
     };
 
+    // ⭐ NEW: Function to load and set user profile data from DB
+    async function loadUserProfile(user) {
+        try {
+            const profileSnapshot = await get(ref(db, `users/${user.uid}/profile`));
+            const profileData = profileSnapshot.val();
 
-    // 🔒 Protect Dashboard & Load User Info
+            // Set global user variables
+            currentUserPhone = profileData?.phone || null;
+            currentUserAddress = profileData?.address || null;
+
+            // Set Profile View fields
+            document.getElementById("profile-input-name").value = user.displayName || "";
+            document.getElementById("profile-input-phone").value = currentUserPhone || "";
+            document.getElementById("profile-input-address").value = currentUserAddress || "";
+            document.getElementById("profile-input-email").value = user.email || ""; // Readonly email
+
+            // Set display fields
+            document.getElementById("userNameProfile").innerText = user.displayName || "User";
+            document.getElementById("userEmailProfile").innerText = user.email;
+            document.getElementById("userPhoneProfile").innerText = currentUserPhone || "N/A (Required for Orders)";
+            document.getElementById("userAddressProfile").innerText = currentUserAddress || "N/A";
+            
+        } catch (error) {
+            console.error("Error loading user profile:", error);
+        }
+    }
+
+    // ⭐ NEW: Function to update user profile data in Auth and DB
+    window.updateUserProfile = async () => {
+        if (!currentUserId) return;
+        
+        const newName = document.getElementById("profile-input-name").value.trim();
+        const newPhone = document.getElementById("profile-input-phone").value.trim();
+        const newAddress = document.getElementById("profile-input-address").value.trim();
+
+        if (!newName || !newPhone || newPhone.length < 10) {
+            return showToast("Name and a valid Mobile Number are required!", "warning");
+        }
+
+        showLoader();
+
+        try {
+            // 1. Update Firebase Authentication Profile (for display name)
+            await updateProfile(auth.currentUser, {
+                displayName: newName
+            });
+
+            // 2. Update Realtime Database Profile (for phone, address, etc.)
+            const profileData = {
+                name: newName,
+                phone: newPhone,
+                address: newAddress,
+                lastUpdated: new Date().toISOString()
+            };
+            await set(ref(db, `users/${currentUserId}/profile`), profileData);
+
+            // Update local variables and re-run UI updates
+            await loadUserProfile(auth.currentUser); 
+            
+            // Re-populate sell form fields
+            document.getElementById("selleremail").value = auth.currentUser.email;
+            document.getElementById("sellername").value = newName;
+            document.getElementById("sellerphone").value = newPhone;
+
+
+            showToast("Profile updated successfully!", "success");
+
+        } catch (error) {
+            showToast(`Error updating profile: ${error.message}`, "error");
+        } finally {
+            hideLoader();
+        }
+    };
+
+
+    // 🔒 Protect Dashboard & Load User Info - MODIFIED
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         window.location.href = "index.html";
@@ -289,20 +400,17 @@
         currentUserId = user.uid; // Store UID
         currentUserEmail = user.email; 
         
-        // Load the persistent cart count
+        // Load the persistent cart count AND the profile data
         loadCartCount();
-
-        // Profile view content
-        document.getElementById("userNameProfile").innerText = user.displayName || "User";
-        document.getElementById("userEmailProfile").innerText = user.email;
-        document.getElementById("userPhotoProfile").src = user.photoURL || "https://static-00.iconduck.com/assets.00/user-avatar-icon-512x512-nghi2896.png";
+        loadUserProfile(user); 
         
         // Drawer Profile content
+        document.getElementById("userPhotoDrawer").src = user.photoURL || "https://static-00.iconduck.com/assets.00/user-avatar-icon-512x512-nghi2896.png";
         document.getElementById("userNameDrawer").innerText = user.displayName || "User";
         document.getElementById("userEmailDrawer").innerText = user.email;
-        document.getElementById("userPhotoDrawer").src = user.photoURL || "https://static-00.iconduck.com/assets.00/user-avatar-icon-512x512-nghi2896.png";
+        
 
-        // Pre-fill seller details on the Sell page
+        // Pre-fill seller details on the Sell page (will be overwritten by loadUserProfile)
         document.getElementById("selleremail").value = user.email;
         document.getElementById("sellername").value = user.displayName || "";
       }
@@ -316,7 +424,7 @@
       });
     };
 
-    // 🔹 Add Vehicle (sent to pending approval) - UNCHANGED
+    // 🔹 Add Vehicle (sent to pending approval) - UNCHANGED LOGIC
     window.addVehicle = () => {
       // Seller Details
       const sellerName = document.getElementById("sellername").value.trim();
@@ -383,7 +491,7 @@
         .catch((err) => showToast(`Error submitting vehicle: ${err.message}`, "error"));
     };
 
-    // 🔹 Load Approved Vehicles (Home View) - MODIFIED TO PASS KEY TO BUTTONS
+    // 🔹 Load Approved Vehicles (Home View) - UNCHANGED
     const vehicleGrid = document.getElementById("vehicleGrid");
     onValue(ref(db, "vehicles/"), (snapshot) => {
       vehicleGrid.innerHTML = "";
@@ -502,7 +610,7 @@
         document.body.style.overflow = isVisible ? 'hidden' : 'auto';
     }
 
-    // 🔹 Section Visibility Manager - UPDATED TO CALL CART/ORDERS LOADERS
+    // 🔹 Section Visibility Manager - UNCHANGED
     window.showSection = (sectionId) => {
         // Close the drawer if open
         const drawer = document.getElementById('drawer-menu');
@@ -539,6 +647,7 @@
     // Set initial view
     document.addEventListener('DOMContentLoaded', () => {
         showSection('home');
+        hideLoader(); // Ensure loader is hidden on load
     });
 
   </script>
@@ -565,6 +674,31 @@
       padding-top: 60px; /* Space for fixed header */
       color: var(--text-color);
     }
+
+    /* --- LOADER BAR (NEW) --- */
+    #loader-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background-color: transparent;
+        z-index: 10002;
+        overflow: hidden;
+    }
+    #loader-bar::after {
+        content: '';
+        display: block;
+        height: 100%;
+        width: 30%; /* Start width */
+        background-color: var(--danger-color); /* Highlight color */
+        animation: progress-slide 1.5s infinite linear;
+    }
+    @keyframes progress-slide {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(400%); }
+    }
+
 
     /* --- SECTION VISIBILITY --- */
     .content-section.hidden {
@@ -752,7 +886,7 @@
       padding: 0 20px;
     }
 
-    /* Profile Section Styling (UNCHANGED) */
+    /* Profile Section Styling (MODIFIED for detailed display) */
     .profile-card {
       display: flex;
       align-items: center;
@@ -762,17 +896,66 @@
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       border-left: 4px solid var(--primary-color);
+      flex-direction: column; 
+      align-items: flex-start;
     }
-    .profile-card img { 
-      width: 60px; 
-      height: 60px;
+    .profile-summary {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .profile-summary img { 
+      width: 80px; 
+      height: 80px;
       border-radius: 50%; 
       margin-right: 20px; 
       object-fit: cover;
-      border: 2px solid var(--primary-color);
+      border: 3px solid var(--primary-color);
     }
-    .profile-card h3 { margin: 0 0 5px 0; font-size: 18px; font-weight: 600; }
-    .profile-card p { color: var(--text-light); margin: 0; font-size: 14px; }
+    .profile-details h3 { margin: 0 0 5px 0; font-size: 18px; font-weight: 600; }
+    .profile-details p { color: var(--text-light); margin: 0; font-size: 14px; margin-bottom: 5px;}
+    .profile-details p span { font-weight: 500; color: var(--text-color); }
+
+    /* Profile Edit Form Styles (NEW) */
+    .profile-edit-form {
+        width: 100%;
+    }
+    .profile-edit-form input {
+        width: 100%;
+        margin-bottom: 15px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        font-family: inherit;
+        font-size: 16px;
+    }
+    .profile-edit-form label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: var(--primary-color);
+    }
+    .profile-edit-form button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: background 0.3s;
+        width: 100%;
+        margin-top: 10px;
+    }
+    .profile-edit-form button:hover {
+        background: var(--primary-hover);
+    }
+
 
     /* Vehicle Grid (UNCHANGED) */
     .section-title {
@@ -1112,7 +1295,7 @@
       top: 20px; 
       left: 50%; 
       transform: translateX(-50%); 
-      z-index: 10000;
+      z-index: 10003; /* Higher z-index than loader */
       display: flex;
       flex-direction: column-reverse; 
       align-items: center;
@@ -1233,7 +1416,7 @@
   </style>
 </head>
 <body>
-  <div id="toast-container"></div>
+  <div id="loader-bar"></div> <div id="toast-container"></div>
   
   <div id="drawer-menu">
     <div class="drawer-header">
@@ -1373,11 +1556,32 @@
     <div id="profile-view" class="content-section hidden">
         <h2 class="section-title">Your Profile</h2>
         <div class="profile-card">
-            <img id="userPhotoProfile" alt="User Photo" />
-            <div>
-                <h3 id="userNameProfile"></h3>
-                <p id="userEmailProfile"></p>
-                <button onclick="showToast('Profile editing coming soon!', 'warning')" style="margin-top: 10px; padding: 5px 10px; font-size: 14px; width: auto; background: var(--text-light);">Edit Profile</button>
+            <div class="profile-summary">
+                <img id="userPhotoProfile" alt="User Photo" />
+                <div class="profile-details">
+                    <h3 id="userNameProfile"></h3>
+                    <p>Email: <span id="userEmailProfile"></span></p>
+                    <p>Mobile No: <span id="userPhoneProfile"></span></p>
+                    <p>Address: <span id="userAddressProfile"></span></p>
+                </div>
+            </div>
+            
+            <div class="profile-edit-form">
+                <h3>Edit Profile Details</h3>
+                
+                <label for="profile-input-name">Full Name</label>
+                <input type="text" id="profile-input-name" placeholder="Name" required>
+
+                <label for="profile-input-phone">Mobile No. (Required for orders)</label>
+                <input type="number" id="profile-input-phone" placeholder="Mobile Number" required>
+
+                <label for="profile-input-address">Address</label>
+                <input type="text" id="profile-input-address" placeholder="Address" required>
+                
+                <label for="profile-input-email">Email</label>
+                <input type="email" id="profile-input-email" placeholder="Email" readonly title="Email cannot be changed here">
+
+                <button onclick="updateUserProfile()">Update Profile</button>
             </div>
         </div>
     </div>
