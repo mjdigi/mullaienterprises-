@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #f9fafb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    img {
+      width: 100px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    #logout {
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    #logout:hover {
+      background: #e63b3b;
+    }
+  </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } 
+      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+
+    // ✅ Same Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuTQZ0zwLMLdfzzD2KjEhaGk6BTzJK72s",
+      authDomain: "secondhand-803a3.firebaseapp.com",
+      projectId: "secondhand-803a3",
+      storageBucket: "secondhand-803a3.firebasestorage.app",
+      messagingSenderId: "554970268999",
+      appId: "1:554970268999:web:d4f418e31c65ef8599f862",
+      measurementId: "G-8D44TJDZ24"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // 🔹 Protect Page (redirect if not logged in)
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+      } else {
+        // Show user info
+        document.getElementById("photo").src = user.photoURL;
+        document.getElementById("name").innerText = user.displayName;
+        document.getElementById("email").innerText = user.email;
+      }
+    });
+
+    // 🔹 Logout
+    window.logout = () => {
+      signOut(auth).then(() => {
+        localStorage.removeItem("user");
+        window.location.href = "index.html";
+      });
+    };
+  </script>
+</head>
+<body>
+  <h2>Welcome to Your Dashboard</h2>
+  <img id="photo" alt="User Photo">
+  <h3 id="name"></h3>
+  <p id="email"></p>
+  <button id="logout" onclick="logout()">Logout</button>
+</body>
+</html>
