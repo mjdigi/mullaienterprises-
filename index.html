@@ -3,13 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Google Sign In - Firebase</title>
+  <title>MJ Digi Motors - Account</title>
 
-  <!-- Firebase SDK -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
-      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { 
+      getAuth, 
+      GoogleAuthProvider, 
+      signInWithPopup, 
+      createUserWithEmailAndPassword, 
+      signInWithEmailAndPassword,
+      updateProfile,
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 
     // ✅ Your Firebase Config
     const firebaseConfig = {
@@ -26,75 +34,324 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // 🔹 Sign In Function
+    // 🔹 Toast Notification Function
+    window.showToast = (message, type = 'success') => {
+      let toastContainer = document.getElementById('toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+      }
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerText = message;
+      toastContainer.prepend(toast); // Add new toast to the top of the container
+
+      setTimeout(() => {
+        toast.classList.add('fade-out');
+        toast.addEventListener('transitionend', () => toast.remove());
+      }, 3000); // Show for 3 seconds
+    };
+
+    // 🔑 Function to parse Firebase Auth errors into user-friendly messages
+    const getFriendlyErrorMessage = (errorCode) => {
+      switch (errorCode) {
+        case 'auth/email-already-in-use':
+          return 'This email is already registered. Please sign in.';
+        case 'auth/invalid-email':
+          return 'Invalid email address or format.';
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          return 'Invalid user credentials or incorrect password.';
+        case 'auth/weak-password':
+          return 'Password should be at least 6 characters.';
+        case 'auth/popup-closed-by-user':
+          return 'Google sign-in window closed. Please try again.';
+        default:
+          return 'An unexpected error occurred. Please try again.';
+      }
+    };
+
+    // 🔹 Google Sign-In
     window.googleSignIn = () => {
       signInWithPopup(auth, provider)
-        .then((result) => {
-          const user = result.user;
-          // Save user info
-          localStorage.setItem("user", JSON.stringify({
-            name: user.displayName,
-            email: user.email,
-            photo: user.photoURL
-          }));
-          // Redirect to dashboard
+        .then(() => {
+          showToast("Signed in with Google successfully!", "success");
           window.location.href = "dashboard.html";
         })
         .catch((error) => {
-          alert("Error: " + error.message);
-          console.error(error);
+          const friendlyMessage = getFriendlyErrorMessage(error.code);
+          showToast(`Error: ${friendlyMessage}`, "error");
         });
     };
 
-    // 🔹 If already logged in → redirect automatically
+    // 🔹 Register with Email & Password
+    window.registerUser = () => {
+      const name = document.getElementById("reg-name").value;
+      const email = document.getElementById("reg-email").value;
+      const password = document.getElementById("reg-password").value;
+
+      if (!name || !email || !password) return showToast("Please fill all fields", "warning");
+
+      createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          return updateProfile(user, { displayName: name });
+        })
+        .then(() => {
+          showToast("Account created successfully!", "success");
+          window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          const friendlyMessage = getFriendlyErrorMessage(error.code);
+          showToast(`Error: ${friendlyMessage}`, "error");
+        });
+    };
+
+    // 🔹 Login with Email & Password
+    window.loginUser = () => {
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => {
+          showToast("Login successful!", "success");
+          window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          const friendlyMessage = getFriendlyErrorMessage(error.code);
+          showToast(`Error: ${friendlyMessage}`, "error");
+        });
+    };
+
+    // 🔹 Redirect if already logged in
     onAuthStateChanged(auth, (user) => {
       if (user) window.location.href = "dashboard.html";
     });
+
+    // 🔹 Toggle between forms
+    window.showRegister = () => {
+      document.getElementById("login-box").style.display = "none";
+      document.getElementById("register-box").style.display = "block";
+    };
+    window.showLogin = () => {
+      document.getElementById("register-box").style.display = "none";
+      document.getElementById("login-box").style.display = "block";
+    };
   </script>
 
   <style>
+    :root {
+      --primary-color: #00796B; /* Teal/Deep Blue-Green */
+      --primary-hover: #00695C;
+      --background-color: #f0f2f5;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --text-light: #666666;
+      --border-color: #e0e0e0;
+      /* Toast Colors */
+      --success-bg: #4caf50;
+      --error-bg: #f44336;
+      --warning-bg: #ff9800;
+    }
+    * {
+      box-sizing: border-box;
+    }
     body {
-      font-family: "Poppins", sans-serif;
+      font-family: 'Inter', sans-serif;
+      background: var(--background-color);
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      background: #f6f8fa;
+      min-height: 100vh;
+      margin: 0;
     }
-    h1 {
-      color: #333;
-      margin-bottom: 30px;
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      padding: 30px;
+      margin: 20px;
+      transition: transform 0.3s ease;
+    }
+    .container:hover {
+      transform: translateY(-2px);
+    }
+    .logo-header {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary-color);
+      letter-spacing: -0.5px;
+    }
+    h2 {
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 25px;
+      color: var(--text-color);
+      font-weight: 600;
+      font-size: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 15px;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 121, 107, 0.1);
+    }
+    .main-button {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary-color);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 15px;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .main-button:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 4px 10px rgba(0, 121, 107, 0.3);
+    }
+    p {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 20px;
+      color: var(--text-light);
+    }
+    p a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    p a:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
     }
     #google-btn {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
-      background: white;
-      border: 2px solid #ddd;
-      padding: 10px 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-light);
+      padding: 10px;
       border-radius: 8px;
+      margin-top: 15px;
       cursor: pointer;
-      font-size: 16px;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 15px;
+      font-weight: 500;
+      transition: border-color 0.3s, background 0.3s;
     }
     #google-btn:hover {
       border-color: #4285F4;
-      box-shadow: 0 4px 8px rgba(66,133,244,0.3);
+      background: #f8f8f8;
     }
     #google-btn img {
-      width: 25px;
-      height: 25px;
+      width: 20px;
     }
+    .divider {
+      text-align: center;
+      margin: 20px 0;
+      font-size: 13px;
+      color: #aaa;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: var(--border-color);
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    /* --- UPDATED TOAST STYLES (TOP CENTER) --- */
+    #toast-container {
+      position: fixed;
+      top: 20px; /* Position from the top */
+      left: 50%; /* Center horizontally */
+      transform: translateX(-50%); /* Adjust to true center */
+      z-index: 10000;
+      display: flex;
+      flex-direction: column-reverse; /* Stack toasts on top of each other */
+      align-items: center;
+    }
+    .toast {
+      min-width: 250px;
+      max-width: 350px;
+      background-color: var(--text-color);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      opacity: 1;
+      transform: translateY(0); /* Start position */
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      font-size: 15px;
+      text-align: center;
+    }
+    .toast.fade-out {
+      opacity: 0;
+      transform: translateY(-20px); /* Fade out upwards */
+    }
+    .toast.success { background-color: var(--success-bg); }
+    .toast.error { background-color: var(--error-bg); }
+    .toast.warning { background-color: var(--warning-bg); }
+
   </style>
 </head>
 <body>
-  <h1>Sign in with Google</h1>
+  <div class="container">
+    <div class="logo-header">MJ Digi Motors</div>
 
-  <button id="google-btn" onclick="googleSignIn()">
-    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
-    Continue with Google
-  </button>
+    <div id="login-box">
+      <h2>Sign In to Your Account</h2>
+      <input type="email" id="login-email" placeholder="Email Address" />
+      <input type="password" id="login-password" placeholder="Password" />
+      <button class="main-button" onclick="loginUser()">Sign In</button>
+
+      <div class="divider">or</div>
+
+      <div id="google-btn" onclick="googleSignIn()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+        Continue with Google
+      </div>
+
+      <p>Don't have an account? <a onclick="showRegister()">Create one</a></p>
+    </div>
+
+    <div id="register-box" style="display:none;">
+      <h2>Create Your Account</h2>
+      <input type="text" id="reg-name" placeholder="Full Name" />
+      <input type="email" id="reg-email" placeholder="Email Address" />
+      <input type="password" id="reg-password" placeholder="Password" />
+      <button class="main-button" onclick="registerUser()">Sign Up</button>
+
+      <p>Already have an account? <a onclick="showLogin()">Sign In</a></p>
+    </div>
+
+  </div>
+  <div id="toast-container"></div>
 </body>
 </html>
